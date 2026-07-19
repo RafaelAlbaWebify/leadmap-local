@@ -1,0 +1,44 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Local data and secrets
+.env
+.env.*
+!.env.example
+data/*.db
+data/*.sqlite*
+data/exports/
+data/diagnostics/
+browser-profile/
+playwright-report/
+test-results/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+patch-backups/
+_leadmap_backups/
+BASELINE_REPAIR_REPORT.txt
+
+coverage.xml
+frontend/node_modules/
+frontend/dist/
+data/*.sqlite
+data/*.sqlite3
+*_REPORT.txt

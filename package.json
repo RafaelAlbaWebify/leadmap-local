@@ -1,0 +1,11 @@
+{
+  "name": "leadmap-local-workspace",
+  "private": true,
+  "packageManager": "npm@11.4.2",
+  "scripts": {
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:test": "npm --prefix frontend run test",
+    "frontend:lint": "npm --prefix frontend run lint"
+  }
+}

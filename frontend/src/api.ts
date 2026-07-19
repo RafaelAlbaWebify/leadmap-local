@@ -1,0 +1,52 @@
+import type {
+  DashboardSummary,
+  DiscoveryPlan,
+  Lead,
+  QueryTemplate,
+  SeedResult,
+  Territory
+} from "./types";
+
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init);
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`${response.status}: ${detail || response.statusText}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+export function fetchDashboard(): Promise<DashboardSummary> {
+  return requestJson("/api/v1/dashboard");
+}
+
+export function fetchTerritories(): Promise<Territory[]> {
+  return requestJson("/api/v1/territories");
+}
+
+export function fetchQueryTemplates(): Promise<QueryTemplate[]> {
+  return requestJson("/api/v1/query-templates?country_code=IE");
+}
+
+export function fetchLeads(): Promise<Lead[]> {
+  return requestJson("/api/v1/leads");
+}
+
+export function seedIreland(): Promise<SeedResult> {
+  return requestJson("/api/v1/seed/ireland", { method: "POST" });
+}
+
+export function createDiscoveryPlan(
+  territoryId: string,
+  queryTemplateId: string
+): Promise<DiscoveryPlan> {
+  return requestJson("/api/v1/discovery/plan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      territory_id: territoryId,
+      query_template_id: queryTemplateId,
+      max_results_per_query: 20
+    })
+  });
+}

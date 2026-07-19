@@ -1,0 +1,37 @@
+[
+  {
+    "provider_key": "fixture-001",
+    "name": "West Coast Accountancy",
+    "category": "Accountant",
+    "country_code": "IE",
+    "locality": "Galway",
+    "postal_area": "H91",
+    "website": "https://example.com",
+    "phone": "+353 91 000 001",
+    "source_url": "https://example.invalid/fixture-001",
+    "observed_at": "2026-07-19T08:00:00+00:00",
+    "matched_phrases": ["accountant", "accountants"]
+  },
+  {
+    "provider_key": "fixture-001",
+    "name": "West Coast Accountancy",
+    "category": "Accountant",
+    "country_code": "IE",
+    "locality": "Galway",
+    "postal_area": "H91",
+    "website": "https://example.com",
+    "phone": "+353 91 000 001",
+    "source_url": "https://example.invalid/fixture-001",
+    "observed_at": "2026-07-19T08:00:00+00:00",
+    "matched_phrases": ["accountant"]
+  },
+  {
+    "provider_key": "fixture-002",
+    "name": "River Tax Services",
+    "category": "Tax advisor",
+    "country_code": "IE",
+    "locality": "Galway",
+    "observed_at": "2026-07-19T08:01:00+00:00",
+    "matched_phrases": ["accountant", "tax advisor"]
+  }
+]
