@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from "maplibre-gl";
-import { fetchGeographyArtifact, fetchGeographyArtifacts } from "./api";
+import {
+  fetchGeographyArtifact,
+  fetchGeographyArtifacts,
+  fetchTerritories,
+  fetchTerritoryBoundaryLinks,
+  saveTerritoryBoundaryLink
+} from "./api";
 import type { GeographyArtifact, GeographyBoundary } from "./types";
 
 const EMPTY_STYLE = {
@@ -37,17 +43,33 @@ function collectionBounds(boundaries: GeographyBoundary[]): maplibregl.LngLatBou
 }
 
 export function GeographyWorkspace() {
+  const queryClient = useQueryClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [selectedBoundary, setSelectedBoundary] = useState<GeographyBoundary | null>(null);
+  const [territoryId, setTerritoryId] = useState("");
   const catalog = useQuery({ queryKey: ["geography-artifacts"], queryFn: fetchGeographyArtifacts });
+  const territories = useQuery({ queryKey: ["territories"], queryFn: fetchTerritories });
+  const links = useQuery({ queryKey: ["territory-boundary-links"], queryFn: fetchTerritoryBoundaryLinks });
   const selectedArtifact = catalog.data?.[0];
   const artifact = useQuery({
     queryKey: ["geography-artifact", selectedArtifact?.checksum_sha256],
     queryFn: () => fetchGeographyArtifact(selectedArtifact!.checksum_sha256),
     enabled: Boolean(selectedArtifact)
   });
+  const saveLink = useMutation({
+    mutationFn: () => saveTerritoryBoundaryLink(
+      territoryId,
+      selectedArtifact!.checksum_sha256,
+      selectedBoundary!.external_id
+    ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["territory-boundary-links"] });
+    }
+  });
 
+  const currentLink = links.data?.find((link) => link.boundary_external_id === selectedBoundary?.external_id);
+  const linkedTerritory = territories.data?.find((territory) => territory.id === currentLink?.territory_id);
   const featureCollection = useMemo(
     () => (artifact.data ? asFeatureCollection(artifact.data) : null),
     [artifact.data]
@@ -71,7 +93,6 @@ export function GeographyWorkspace() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !featureCollection || !artifact.data) return;
-
     const render = () => {
       const source = map.getSource("boundaries") as GeoJSONSource | undefined;
       if (source) source.setData(featureCollection);
@@ -99,7 +120,6 @@ export function GeographyWorkspace() {
       const bounds = collectionBounds(artifact.data.boundaries);
       if (bounds) map.fitBounds(bounds, { padding: 28, duration: 0 });
     };
-
     if (map.loaded()) render();
     else map.once("load", render);
   }, [artifact.data, featureCollection]);
@@ -116,6 +136,29 @@ export function GeographyWorkspace() {
         <span className="badge neutral">{selectedArtifact.source.edition_year}</span>
         <h3>{selectedBoundary?.name ?? selectedArtifact.source.dataset_title}</h3>
         <p>{selectedBoundary ? "Selected local authority" : `${selectedArtifact.feature_count} validated boundaries`}</p>
+        {selectedBoundary && (
+          <div className="territory-link-editor">
+            <p>{linkedTerritory ? `Linked to ${linkedTerritory.name}` : "Not linked to a LeadMap territory"}</p>
+            <label>
+              Territory
+              <select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)}>
+                <option value="">Choose a territory</option>
+                {territories.data?.map((territory) => (
+                  <option key={territory.id} value={territory.id}>{territory.name}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="secondary-action full"
+              disabled={!territoryId || saveLink.isPending}
+              onClick={() => saveLink.mutate()}
+            >
+              {saveLink.isPending ? "Saving…" : "Assign boundary"}
+            </button>
+            {saveLink.isSuccess && <small className="success-text">Territory link saved.</small>}
+            {saveLink.isError && <small className="error-text">Territory link could not be saved.</small>}
+          </div>
+        )}
         <dl>
           <div><dt>Publisher</dt><dd>{selectedArtifact.source.publisher}</dd></div>
           <div><dt>Licence</dt><dd>{selectedArtifact.source.licence}</dd></div>
