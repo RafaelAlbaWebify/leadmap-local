@@ -33,6 +33,7 @@ const responses = {
   ],
   "/api/v1/query-templates?country_code=IE": [],
   "/api/v1/leads": [],
+  "/api/v1/geography/territory-links": [],
   "/api/v1/geography/artifacts": [
     {
       schema_version: "1",
@@ -151,6 +152,7 @@ try {
   if (!mapBox) throw new Error("Geographic map did not produce a visible bounding box.");
   await page.mouse.click(mapBox.x + mapBox.width * 0.45, mapBox.y + mapBox.height * 0.5);
   await page.locator(".geography-detail").getByRole("heading", { name: "Galway City" }).waitFor();
+  await page.getByRole("button", { name: "Assign boundary" }).waitFor();
   await page.waitForTimeout(250);
   await page.screenshot({
     path: "artifacts/screenshots/territories-selected-boundary.png",
