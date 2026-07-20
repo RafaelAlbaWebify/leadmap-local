@@ -53,15 +53,27 @@ const responses = {
         external_id: "galway-city",
         name: "Galway City",
         geometry_type: "Polygon",
-        coordinates: [[[-9.25, 53.22], [-8.95, 53.22], [-8.95, 53.42], [-9.25, 53.42], [-9.25, 53.22]]],
-        bounding_box: { west: -9.25, south: 53.22, east: -8.95, north: 53.42 }
+        coordinates: [[
+          [-10.2, 51.5],
+          [-8.2, 51.6],
+          [-8.1, 55.2],
+          [-9.5, 55.4],
+          [-10.2, 51.5]
+        ]],
+        bounding_box: { west: -10.2, south: 51.5, east: -8.1, north: 55.4 }
       },
       {
         external_id: "dublin-city",
         name: "Dublin City",
         geometry_type: "Polygon",
-        coordinates: [[[-6.42, 53.25], [-6.08, 53.25], [-6.08, 53.45], [-6.42, 53.45], [-6.42, 53.25]]],
-        bounding_box: { west: -6.42, south: 53.25, east: -6.08, north: 53.45 }
+        coordinates: [[
+          [-8.1, 51.6],
+          [-5.8, 51.5],
+          [-6.1, 55.2],
+          [-8.1, 55.2],
+          [-8.1, 51.6]
+        ]],
+        bounding_box: { west: -8.1, south: 51.5, east: -5.8, north: 55.2 }
       }
     ]
   }
@@ -137,7 +149,7 @@ try {
 
   const mapBox = await page.locator(".geography-map").boundingBox();
   if (!mapBox) throw new Error("Geographic map did not produce a visible bounding box.");
-  await page.mouse.click(mapBox.x + mapBox.width * 0.08, mapBox.y + mapBox.height * 0.5);
+  await page.mouse.click(mapBox.x + mapBox.width * 0.25, mapBox.y + mapBox.height * 0.5);
   await page.locator(".geography-detail").getByRole("heading", { name: "Galway City" }).waitFor();
   await page.waitForTimeout(250);
   await page.screenshot({
