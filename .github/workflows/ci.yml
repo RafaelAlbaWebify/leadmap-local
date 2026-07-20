@@ -46,8 +46,23 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - name: Normalize lockfile registry metadata
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'package-lock.json';
+          const lock = JSON.parse(fs.readFileSync(path, 'utf8'));
+          for (const entry of Object.values(lock.packages ?? {})) {
+            if (entry && typeof entry === 'object' && typeof entry.resolved === 'string') {
+              if (!entry.resolved.startsWith('https://registry.npmjs.org/')) {
+                delete entry.resolved;
+              }
+            }
+          }
+          fs.writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
+          NODE
       - name: Install
-        run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org --replace-registry-host=always
+        run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org
       - name: Lint
         run: npm run lint
       - name: Test
