@@ -19,7 +19,7 @@ dependencies = [
 browser = ["playwright>=1.54,<2"]
 dev = [
   "httpx>=0.28,<1",
-  "mypy>=1.15,<2",
+  "mypy>=1.15,<3",
   "pytest>=8.3,<10",
   "pytest-asyncio>=0.25,<2",
   "pytest-cov>=6,<8",
