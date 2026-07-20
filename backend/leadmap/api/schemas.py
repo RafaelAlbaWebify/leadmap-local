@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -108,3 +109,36 @@ class DiscoveryPlanResponse(BaseModel):
     max_results_per_query: int
     total_planned_queries: int
     mode: str = "assisted"
+
+
+class GeographySourceResponse(BaseModel):
+    dataset_title: str
+    publisher: str
+    licence: str
+    edition_year: int
+    source_url: str
+    retrieved_at: datetime
+
+
+class GeographyBoundingBoxResponse(BaseModel):
+    west: float
+    south: float
+    east: float
+    north: float
+
+
+class GeographyBoundaryResponse(BaseModel):
+    external_id: str
+    name: str
+    geometry_type: Literal["Polygon", "MultiPolygon"]
+    coordinates: Any
+    bounding_box: GeographyBoundingBoxResponse
+
+
+class GeographyArtifactResponse(BaseModel):
+    schema_version: str
+    idempotency_key: str
+    checksum_sha256: str
+    source: GeographySourceResponse
+    feature_count: int
+    boundaries: list[GeographyBoundaryResponse]
