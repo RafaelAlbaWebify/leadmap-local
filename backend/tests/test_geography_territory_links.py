@@ -70,9 +70,7 @@ def test_persists_and_lists_validated_territory_link(
         "boundary_external_id": "la-galway-city",
         "boundary_name": "Galway City",
     }
-    assert client.get("/api/v1/geography/territory-links").json() == [
-        response.json()
-    ]
+    assert client.get("/api/v1/geography/territory-links").json() == [response.json()]
     assert (tmp_path / "territory-boundary-links.json").exists()
 
 
