@@ -54,26 +54,16 @@ export function GeographyWorkspace() {
   );
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!artifact.data || !container || mapRef.current) return;
-
-    const map = new maplibregl.Map({
-      container,
+    if (!artifact.data || !containerRef.current || mapRef.current) return;
+    mapRef.current = new maplibregl.Map({
+      container: containerRef.current,
       style: EMPTY_STYLE,
       center: [-8, 53.4],
       zoom: 5.4,
       attributionControl: false
     });
-    mapRef.current = map;
-
-    const resizeObserver = typeof ResizeObserver === "undefined"
-      ? null
-      : new ResizeObserver(() => map.resize());
-    resizeObserver?.observe(container);
-
     return () => {
-      resizeObserver?.disconnect();
-      map.remove();
+      mapRef.current?.remove();
       mapRef.current = null;
     };
   }, [artifact.data]);
@@ -83,7 +73,6 @@ export function GeographyWorkspace() {
     if (!map || !featureCollection || !artifact.data) return;
 
     const render = () => {
-      map.resize();
       const source = map.getSource("boundaries") as GeoJSONSource | undefined;
       if (source) source.setData(featureCollection);
       else {
