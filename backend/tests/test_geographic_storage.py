@@ -6,6 +6,7 @@ import pytest
 
 from backend.leadmap.geography import (
     ARTIFACT_SCHEMA_VERSION,
+    BoundaryImportArtifact,
     BoundarySourceMetadata,
     BoundaryValidationError,
     import_boundary_bytes,
@@ -15,7 +16,7 @@ from backend.leadmap.geography import (
 FIXTURE = Path(__file__).parent / "fixtures" / "ireland_boundaries_sample.geojson"
 
 
-def _artifact(retrieved_at: datetime):
+def _artifact(retrieved_at: datetime) -> BoundaryImportArtifact:
     return import_boundary_bytes(
         FIXTURE.read_bytes(),
         source=BoundarySourceMetadata(
