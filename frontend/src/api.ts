@@ -1,6 +1,8 @@
 import type {
   DashboardSummary,
   DiscoveryPlan,
+  GeographyArtifact,
+  GeographyArtifactSummary,
   Lead,
   QueryTemplate,
   SeedResult,
@@ -30,6 +32,14 @@ export function fetchQueryTemplates(): Promise<QueryTemplate[]> {
 
 export function fetchLeads(): Promise<Lead[]> {
   return requestJson("/api/v1/leads");
+}
+
+export function fetchGeographyArtifacts(): Promise<GeographyArtifactSummary[]> {
+  return requestJson("/api/v1/geography/artifacts");
+}
+
+export function fetchGeographyArtifact(checksumSha256: string): Promise<GeographyArtifact> {
+  return requestJson(`/api/v1/geography/artifacts/${checksumSha256}`);
 }
 
 export function seedIreland(): Promise<SeedResult> {
