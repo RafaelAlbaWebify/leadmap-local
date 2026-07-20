@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "sqlite:///./data/leadmap.db"
+    geographic_artifact_dir: str = "./data/geography"
     cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
     browser_headless: bool = False
     max_capture_results: int = 20
