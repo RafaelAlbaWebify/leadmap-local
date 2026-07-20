@@ -16,8 +16,9 @@ FIXTURE = Path(__file__).parent / "fixtures" / "ireland_boundaries_sample.geojso
 
 
 def _store(directory: Path, *, retrieved_at: datetime, source_url: str) -> str:
+    source_bytes = FIXTURE.read_bytes() + b"\n" + (b" " * retrieved_at.hour)
     artifact = import_boundary_bytes(
-        FIXTURE.read_bytes(),
+        source_bytes,
         source=BoundarySourceMetadata(
             dataset_title="Local Authorities - National Statutory Boundaries - Ungeneralised 2026",
             publisher="Tailte Éireann",
