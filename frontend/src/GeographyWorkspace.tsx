@@ -54,7 +54,7 @@ export function GeographyWorkspace() {
   );
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!artifact.data || !containerRef.current || mapRef.current) return;
     mapRef.current = new maplibregl.Map({
       container: containerRef.current,
       style: EMPTY_STYLE,
@@ -66,7 +66,7 @@ export function GeographyWorkspace() {
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [artifact.data]);
 
   useEffect(() => {
     const map = mapRef.current;
