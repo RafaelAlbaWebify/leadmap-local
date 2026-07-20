@@ -31,9 +31,9 @@ def _artifact_document(artifact: BoundaryImportArtifact) -> dict[str, object]:
 
 def _encoded_document(artifact: BoundaryImportArtifact) -> bytes:
     document = _artifact_document(artifact)
-    return (
-        json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    ).encode("utf-8")
+    return (json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+        "utf-8"
+    )
 
 
 def _validate_existing(path: Path, artifact: BoundaryImportArtifact) -> None:
