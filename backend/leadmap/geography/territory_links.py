@@ -28,17 +28,11 @@ def _read_document(directory: Path) -> dict[str, object]:
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise BoundaryValidationError(
-            f"Territory link store is unreadable: {path}."
-        ) from exc
+        raise BoundaryValidationError(f"Territory link store is unreadable: {path}.") from exc
     if not isinstance(document, dict):
-        raise BoundaryValidationError(
-            f"Territory link store has an invalid root: {path}."
-        )
+        raise BoundaryValidationError(f"Territory link store has an invalid root: {path}.")
     if document.get("schema_version") != LINKS_SCHEMA_VERSION:
-        raise BoundaryValidationError(
-            f"Territory link store schema is unsupported: {path}."
-        )
+        raise BoundaryValidationError(f"Territory link store schema is unsupported: {path}.")
     links = document.get("links")
     if not isinstance(links, dict):
         raise BoundaryValidationError(
@@ -54,9 +48,7 @@ def list_territory_boundary_links(*, directory: Path) -> list[TerritoryBoundaryL
     results: list[TerritoryBoundaryLink] = []
     for territory_id, value in links.items():
         if not isinstance(territory_id, str) or not isinstance(value, dict):
-            raise BoundaryValidationError(
-                "Territory link store contains an invalid entry."
-            )
+            raise BoundaryValidationError("Territory link store contains an invalid entry.")
         try:
             results.append(
                 TerritoryBoundaryLink(
