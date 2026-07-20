@@ -149,8 +149,12 @@ def validate_feature_collection(
             raise BoundaryValidationError(f"{feature_path}.type must be 'Feature'.")
 
         properties = _require_mapping(feature.get("properties"), f"{feature_path}.properties")
-        external_id = _require_text(properties.get(id_field), f"{feature_path}.properties.{id_field}")
-        name = _require_text(properties.get(name_field), f"{feature_path}.properties.{name_field}")
+        external_id = _require_text(
+            properties.get(id_field), f"{feature_path}.properties.{id_field}"
+        )
+        name = _require_text(
+            properties.get(name_field), f"{feature_path}.properties.{name_field}"
+        )
 
         normalized_id = _normalize_key(external_id)
         normalized_name = _normalize_key(name)
