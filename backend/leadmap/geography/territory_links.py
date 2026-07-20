@@ -35,7 +35,9 @@ def _read_document(directory: Path) -> dict[str, object]:
         raise BoundaryValidationError(f"Territory link store schema is unsupported: {path}.")
     links = document.get("links")
     if not isinstance(links, dict):
-        raise BoundaryValidationError(f"Territory link store has an invalid links collection: {path}.")
+        raise BoundaryValidationError(
+            f"Territory link store has an invalid links collection: {path}."
+        )
     return document
 
 
@@ -57,7 +59,9 @@ def list_territory_boundary_links(*, directory: Path) -> list[TerritoryBoundaryL
                 )
             )
         except KeyError as exc:
-            raise BoundaryValidationError("Territory link store contains an incomplete entry.") from exc
+            raise BoundaryValidationError(
+                "Territory link store contains an incomplete entry."
+            ) from exc
     return sorted(results, key=lambda item: item.territory_id)
 
 
