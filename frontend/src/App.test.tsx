@@ -104,7 +104,10 @@ vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit
   return { ok: true, json: async () => responses[url] };
 }));
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 function renderApp() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
