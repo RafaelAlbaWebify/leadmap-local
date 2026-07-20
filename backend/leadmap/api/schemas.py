@@ -142,3 +142,11 @@ class GeographyArtifactResponse(BaseModel):
     source: GeographySourceResponse
     feature_count: int
     boundaries: list[GeographyBoundaryResponse]
+
+
+class GeographyArtifactSummaryResponse(BaseModel):
+    schema_version: str
+    idempotency_key: str
+    checksum_sha256: str
+    source: GeographySourceResponse
+    feature_count: int
