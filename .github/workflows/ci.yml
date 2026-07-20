@@ -26,18 +26,6 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Ruff
         run: ruff check .
-      - name: Capture formatter version
-        run: ruff --version
-      - name: Produce formatted storage diagnostic
-        run: ruff format backend/leadmap/geography/storage.py
-      - name: Upload formatted storage diagnostic
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-geographic-storage
-          path: backend/leadmap/geography/storage.py
-          if-no-files-found: error
-      - name: Verify source was already formatted
-        run: git diff --exit-code -- backend/leadmap/geography/storage.py
       - name: Format check
         run: ruff format --check .
       - name: Type check
