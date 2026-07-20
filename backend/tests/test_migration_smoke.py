@@ -12,7 +12,7 @@ def test_alembic_upgrade_creates_versioned_schema(tmp_path: Path) -> None:
     database_url = f"sqlite:///{database_path.as_posix()}"
 
     config = Config("alembic.ini")
-    config.set_main_option("sqlalchemy.url", database_url)
+    config.attributes["database_url"] = database_url
     command.upgrade(config, "head")
 
     inspector = inspect(build_engine(database_url))
