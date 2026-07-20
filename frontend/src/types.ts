@@ -60,3 +60,39 @@ export interface DiscoveryPlan {
   total_planned_queries: number;
   mode: "assisted";
 }
+
+export interface GeographySource {
+  dataset_title: string;
+  publisher: string;
+  licence: string;
+  edition_year: number;
+  source_url: string;
+  retrieved_at: string;
+}
+
+export interface GeographyArtifactSummary {
+  schema_version: string;
+  idempotency_key: string;
+  checksum_sha256: string;
+  source: GeographySource;
+  feature_count: number;
+}
+
+export interface GeographyBoundingBox {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+export interface GeographyBoundary {
+  external_id: string;
+  name: string;
+  geometry_type: "Polygon" | "MultiPolygon";
+  coordinates: unknown;
+  bounding_box: GeographyBoundingBox;
+}
+
+export interface GeographyArtifact extends GeographyArtifactSummary {
+  boundaries: GeographyBoundary[];
+}
