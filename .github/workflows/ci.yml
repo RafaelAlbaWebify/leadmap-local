@@ -82,3 +82,50 @@ jobs:
           name: geography-screenshot-review
           path: frontend/artifacts/screenshots
           if-no-files-found: error
+
+  frontend-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Normalize lockfile registry metadata
+        shell: pwsh
+        run: |
+          @'
+          const fs = require('node:fs');
+          const path = 'package-lock.json';
+          const lock = JSON.parse(fs.readFileSync(path, 'utf8'));
+          for (const entry of Object.values(lock.packages ?? {})) {
+            if (entry && typeof entry === 'object' && typeof entry.resolved === 'string') {
+              if (!entry.resolved.startsWith('https://registry.npmjs.org/')) {
+                delete entry.resolved;
+              }
+            }
+          }
+          fs.writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
+          '@ | node
+      - name: Install
+        run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org
+      - name: Build
+        run: npm run build
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
+          npx playwright install chromium
+      - name: Windows Playwright acceptance
+        run: node e2e/geography-screenshot-review.mjs
+      - name: Upload Windows screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geography-screenshot-review-windows
+          path: frontend/artifacts/screenshots
+          if-no-files-found: error
