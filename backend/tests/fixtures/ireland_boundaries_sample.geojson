@@ -1,0 +1,56 @@
+{
+  "type": "FeatureCollection",
+  "name": "LeadMap representative Ireland boundary fixture",
+  "attribution": "Representative test geometry for the Tailte Éireann CC BY 4.0 import contract; not production boundary data.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "boundary_id": "la-galway-city",
+        "name": "Galway City"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-9.20, 53.20],
+            [-8.90, 53.20],
+            [-8.90, 53.40],
+            [-9.20, 53.40],
+            [-9.20, 53.20]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "boundary_id": "la-cork-city",
+        "name": "Cork City"
+      },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [-8.60, 51.80],
+              [-8.40, 51.80],
+              [-8.40, 51.95],
+              [-8.60, 51.95],
+              [-8.60, 51.80]
+            ]
+          ],
+          [
+            [
+              [-8.35, 51.84],
+              [-8.30, 51.84],
+              [-8.30, 51.89],
+              [-8.35, 51.89],
+              [-8.35, 51.84]
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
