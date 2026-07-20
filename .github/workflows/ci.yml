@@ -26,23 +26,6 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Ruff
         run: ruff check .
-      - name: Produce formatter diagnostic
-        run: ruff format backend/leadmap backend/tests
-      - name: Upload formatter diagnostic
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-geography-api
-          path: |
-            backend/leadmap/api/geography_routes.py
-            backend/leadmap/api/schemas.py
-            backend/leadmap/config.py
-            backend/leadmap/geography/__init__.py
-            backend/leadmap/geography/storage.py
-            backend/leadmap/main.py
-            backend/tests/test_geography_api.py
-          if-no-files-found: error
-      - name: Verify source was already formatted
-        run: git diff --exit-code
       - name: Format check
         run: ruff format --check .
       - name: Type check
