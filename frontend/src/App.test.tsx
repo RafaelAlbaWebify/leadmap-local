@@ -1,7 +1,34 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const mapMethods = {
+  loaded: vi.fn(() => true),
+  addSource: vi.fn(),
+  addLayer: vi.fn(),
+  getSource: vi.fn(() => undefined),
+  on: vi.fn(),
+  once: vi.fn(),
+  fitBounds: vi.fn(),
+  getCanvas: vi.fn(() => ({ style: { cursor: "" } })),
+  remove: vi.fn()
+};
+
+vi.mock("maplibre-gl", () => ({
+  default: { Map: vi.fn(() => mapMethods) }
+}));
+
 import { App } from "./App";
+
+const checksum = "a".repeat(64);
+const source = {
+  dataset_title: "Local Authorities 2026",
+  publisher: "Tailte Éireann",
+  licence: "CC BY 4.0",
+  edition_year: 2026,
+  source_url: "https://example.invalid/boundaries.geojson",
+  retrieved_at: "2026-07-20T10:00:00Z"
+};
 
 const responses: Record<string, unknown> = {
   "/api/v1/dashboard": {
@@ -28,7 +55,28 @@ const responses: Record<string, unknown> = {
     phrases: ["accountant"],
     created_at: "2026-07-19T00:00:00Z"
   }],
-  "/api/v1/leads": []
+  "/api/v1/leads": [],
+  "/api/v1/geography/artifacts": [{
+    schema_version: "1",
+    idempotency_key: "import-1",
+    checksum_sha256: checksum,
+    source,
+    feature_count: 1
+  }],
+  [`/api/v1/geography/artifacts/${checksum}`]: {
+    schema_version: "1",
+    idempotency_key: "import-1",
+    checksum_sha256: checksum,
+    source,
+    feature_count: 1,
+    boundaries: [{
+      external_id: "galway-city",
+      name: "Galway City",
+      geometry_type: "Polygon",
+      coordinates: [[[-9.2, 53.2], [-8.9, 53.2], [-8.9, 53.4], [-9.2, 53.2]]],
+      bounding_box: { west: -9.2, south: 53.2, east: -8.9, north: 53.4 }
+    }]
+  }
 };
 
 vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -61,9 +109,11 @@ function renderApp() {
 }
 
 describe("App", () => {
-  it("renders the persistent operational shell", async () => {
+  it("renders the validated geographic workspace", async () => {
     renderApp();
-    expect(await screen.findByText("Territory workspace")).toBeInTheDocument();
+    expect(await screen.findByText("Local Authorities 2026")).toBeInTheDocument();
+    expect(screen.getByText("1 validated boundaries")).toBeInTheDocument();
+    expect(mapMethods.addSource).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /Territories/i }));
     expect(await screen.findByText("Galway City")).toBeInTheDocument();
   });
