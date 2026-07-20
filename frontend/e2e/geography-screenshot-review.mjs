@@ -102,13 +102,22 @@ try {
   page.on("pageerror", (error) => consoleErrors.push(error.message));
 
   await page.route("**/api/v1/**", async (route) => {
-    const path = new URL(route.request().url()).pathname + new URL(route.request().url()).search;
+    const requestUrl = new URL(route.request().url());
+    const path = requestUrl.pathname + requestUrl.search;
     const payload = responses[path];
     if (payload === undefined) {
-      await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ detail: "Not found" }) });
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Not found" })
+      });
       return;
     }
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(payload)
+    });
   });
 
   await page.goto("http://127.0.0.1:5173", { waitUntil: "networkidle" });
@@ -119,6 +128,15 @@ try {
   await page.getByRole("button", { name: /Territories/i }).click();
   await page.getByRole("heading", { name: "Geographic workspace" }).waitFor();
   await page.screenshot({ path: "artifacts/screenshots/territories-geography.png", fullPage: true });
+
+  const mapBox = await page.locator(".geography-map").boundingBox();
+  if (!mapBox) throw new Error("Geographic map did not produce a visible bounding box.");
+  await page.mouse.click(mapBox.x + mapBox.width * 0.08, mapBox.y + mapBox.height * 0.5);
+  await page.locator(".geography-detail").getByRole("heading", { name: "Galway City" }).waitFor();
+  await page.screenshot({
+    path: "artifacts/screenshots/territories-selected-boundary.png",
+    fullPage: true
+  });
 
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors:\n${consoleErrors.join("\n")}`);
