@@ -5,7 +5,11 @@ from .imports import (
     import_boundary_bytes,
 )
 from .models import BoundaryCollection, BoundingBox, NormalizedBoundary
-from .storage import ARTIFACT_SCHEMA_VERSION, StoredBoundaryArtifact, store_boundary_artifact
+from .storage import (
+    ARTIFACT_SCHEMA_VERSION,
+    StoredBoundaryArtifact,
+    store_boundary_artifact,
+)
 from .validation import BoundaryValidationError, validate_feature_collection
 
 __all__ = [
