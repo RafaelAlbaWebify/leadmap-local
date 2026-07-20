@@ -12,11 +12,20 @@ from .storage import (
     load_boundary_artifact,
     store_boundary_artifact,
 )
+from .territory_links import (
+    LINKS_FILENAME,
+    LINKS_SCHEMA_VERSION,
+    TerritoryBoundaryLink,
+    list_territory_boundary_links,
+    store_territory_boundary_link,
+)
 from .validation import BoundaryValidationError, validate_feature_collection
 
 __all__ = [
     "ARTIFACT_SCHEMA_VERSION",
     "IMPORT_CONTRACT_VERSION",
+    "LINKS_FILENAME",
+    "LINKS_SCHEMA_VERSION",
     "BoundaryCollection",
     "BoundaryImportArtifact",
     "BoundarySourceMetadata",
@@ -24,9 +33,12 @@ __all__ = [
     "BoundingBox",
     "NormalizedBoundary",
     "StoredBoundaryArtifact",
+    "TerritoryBoundaryLink",
     "import_boundary_bytes",
     "list_boundary_artifacts",
+    "list_territory_boundary_links",
     "load_boundary_artifact",
     "store_boundary_artifact",
+    "store_territory_boundary_link",
     "validate_feature_collection",
 ]
