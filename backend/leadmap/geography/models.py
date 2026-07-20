@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from typing import Literal
 
-Coordinate = tuple[float, float]
-LinearRing = tuple[Coordinate, ...]
-PolygonCoordinates = tuple[LinearRing, ...]
-MultiPolygonCoordinates = tuple[PolygonCoordinates, ...]
-GeometryType = Literal["Polygon", "MultiPolygon"]
-GeometryCoordinates = PolygonCoordinates | MultiPolygonCoordinates
+type Coordinate = tuple[float, float]
+type LinearRing = tuple[Coordinate, ...]
+type PolygonCoordinates = tuple[LinearRing, ...]
+type MultiPolygonCoordinates = tuple[PolygonCoordinates, ...]
+type GeometryType = Literal["Polygon", "MultiPolygon"]
+type GeometryCoordinates = PolygonCoordinates | MultiPolygonCoordinates
 
 
 @dataclass(frozen=True, slots=True)
