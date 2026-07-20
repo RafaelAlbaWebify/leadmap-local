@@ -150,3 +150,15 @@ class GeographyArtifactSummaryResponse(BaseModel):
     checksum_sha256: str
     source: GeographySourceResponse
     feature_count: int
+
+
+class TerritoryBoundaryLinkCreate(BaseModel):
+    checksum_sha256: str = Field(min_length=64, max_length=64)
+    boundary_external_id: str = Field(min_length=1, max_length=300)
+
+
+class TerritoryBoundaryLinkResponse(BaseModel):
+    territory_id: str
+    checksum_sha256: str
+    boundary_external_id: str
+    boundary_name: str
