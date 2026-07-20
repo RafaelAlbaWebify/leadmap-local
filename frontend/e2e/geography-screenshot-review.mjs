@@ -81,6 +81,11 @@ async function waitForServer(url, timeoutMs = 30000) {
   throw new Error(`Timed out waiting for ${url}`);
 }
 
+async function waitForStableMap(page) {
+  await page.locator(".geography-map canvas").waitFor({ state: "visible" });
+  await page.waitForTimeout(1000);
+}
+
 const server = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1"], {
   stdio: "inherit",
   shell: process.platform === "win32"
@@ -122,17 +127,19 @@ try {
 
   await page.goto("http://127.0.0.1:5173", { waitUntil: "networkidle" });
   await page.getByText("2 validated boundaries").waitFor();
-  await page.locator(".geography-map canvas").waitFor({ state: "visible" });
+  await waitForStableMap(page);
   await page.screenshot({ path: "artifacts/screenshots/overview-geography.png", fullPage: true });
 
   await page.getByRole("button", { name: /Territories/i }).click();
   await page.getByRole("heading", { name: "Geographic workspace" }).waitFor();
+  await waitForStableMap(page);
   await page.screenshot({ path: "artifacts/screenshots/territories-geography.png", fullPage: true });
 
   const mapBox = await page.locator(".geography-map").boundingBox();
   if (!mapBox) throw new Error("Geographic map did not produce a visible bounding box.");
   await page.mouse.click(mapBox.x + mapBox.width * 0.08, mapBox.y + mapBox.height * 0.5);
   await page.locator(".geography-detail").getByRole("heading", { name: "Galway City" }).waitFor();
+  await page.waitForTimeout(250);
   await page.screenshot({
     path: "artifacts/screenshots/territories-selected-boundary.png",
     fullPage: true
