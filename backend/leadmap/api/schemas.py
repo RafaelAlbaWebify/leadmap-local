@@ -64,9 +64,7 @@ class QueryTemplateCreate(BaseModel):
     @field_validator("countries")
     @classmethod
     def normalize_countries(cls, values: list[str]) -> list[str]:
-        normalized = sorted(
-            {value.strip().upper() for value in values if value.strip()}
-        )
+        normalized = sorted({value.strip().upper() for value in values if value.strip()})
         if not normalized:
             raise ValueError("At least one non-empty country code is required.")
         if any(len(value) != 2 for value in normalized):
@@ -76,9 +74,7 @@ class QueryTemplateCreate(BaseModel):
     @field_validator("phrases")
     @classmethod
     def normalize_phrases(cls, values: list[str]) -> list[str]:
-        normalized = list(
-            dict.fromkeys(value.strip() for value in values if value.strip())
-        )
+        normalized = list(dict.fromkeys(value.strip() for value in values if value.strip()))
         if not normalized:
             raise ValueError("At least one non-empty phrase is required.")
         return normalized
