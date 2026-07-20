@@ -116,8 +116,8 @@ describe("App", () => {
     renderApp();
     expect(await screen.findByText("Local Authorities 2026")).toBeInTheDocument();
     expect(screen.getByText("1 validated boundaries")).toBeInTheDocument();
-    expect(mapMethods.addSource).toHaveBeenCalled();
-    expect(mapMethods.resize).toHaveBeenCalled();
+    await waitFor(() => expect(mapMethods.addSource).toHaveBeenCalled());
+    await waitFor(() => expect(mapMethods.resize).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: /Territories/i }));
     expect(await screen.findByText("Galway City")).toBeInTheDocument();
   });
