@@ -45,9 +45,7 @@ def _validate_existing(path: Path, artifact: BoundaryImportArtifact) -> None:
         ) from exc
 
     if not isinstance(existing, dict):
-        raise BoundaryValidationError(
-            f"Existing geographic artifact has an invalid root: {path}."
-        )
+        raise BoundaryValidationError(f"Existing geographic artifact has an invalid root: {path}.")
     if existing.get("schema_version") != ARTIFACT_SCHEMA_VERSION:
         raise BoundaryValidationError(
             f"Existing geographic artifact schema is unsupported: {path}."
