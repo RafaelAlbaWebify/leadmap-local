@@ -8,7 +8,11 @@ from backend.leadmap.persistence import models  # noqa: F401
 from backend.leadmap.persistence.base import Base
 
 config = context.config
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+configured_url = config.attributes.get("database_url")
+config.set_main_option(
+    "sqlalchemy.url",
+    str(configured_url) if configured_url is not None else get_settings().database_url,
+)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 target_metadata = Base.metadata
