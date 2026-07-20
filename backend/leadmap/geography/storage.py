@@ -31,7 +31,9 @@ def _artifact_document(artifact: BoundaryImportArtifact) -> dict[str, object]:
 
 def _encoded_document(artifact: BoundaryImportArtifact) -> bytes:
     document = _artifact_document(artifact)
-    return (json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    return (
+        json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
 
 
 def _validate_existing(path: Path, artifact: BoundaryImportArtifact) -> None:
@@ -43,13 +45,21 @@ def _validate_existing(path: Path, artifact: BoundaryImportArtifact) -> None:
         ) from exc
 
     if not isinstance(existing, dict):
-        raise BoundaryValidationError(f"Existing geographic artifact has an invalid root: {path}.")
+        raise BoundaryValidationError(
+            f"Existing geographic artifact has an invalid root: {path}."
+        )
     if existing.get("schema_version") != ARTIFACT_SCHEMA_VERSION:
-        raise BoundaryValidationError(f"Existing geographic artifact schema is unsupported: {path}.")
+        raise BoundaryValidationError(
+            f"Existing geographic artifact schema is unsupported: {path}."
+        )
     if existing.get("idempotency_key") != artifact.idempotency_key:
-        raise BoundaryValidationError(f"Existing geographic artifact identity does not match: {path}.")
+        raise BoundaryValidationError(
+            f"Existing geographic artifact identity does not match: {path}."
+        )
     if existing.get("checksum_sha256") != artifact.checksum_sha256:
-        raise BoundaryValidationError(f"Existing geographic artifact checksum does not match: {path}.")
+        raise BoundaryValidationError(
+            f"Existing geographic artifact checksum does not match: {path}."
+        )
 
 
 def store_boundary_artifact(
