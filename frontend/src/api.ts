@@ -6,7 +6,8 @@ import type {
   Lead,
   QueryTemplate,
   SeedResult,
-  Territory
+  Territory,
+  TerritoryBoundaryLink
 } from "./types";
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -40,6 +41,25 @@ export function fetchGeographyArtifacts(): Promise<GeographyArtifactSummary[]> {
 
 export function fetchGeographyArtifact(checksumSha256: string): Promise<GeographyArtifact> {
   return requestJson(`/api/v1/geography/artifacts/${checksumSha256}`);
+}
+
+export function fetchTerritoryBoundaryLinks(): Promise<TerritoryBoundaryLink[]> {
+  return requestJson("/api/v1/geography/territory-links");
+}
+
+export function saveTerritoryBoundaryLink(
+  territoryId: string,
+  checksumSha256: string,
+  boundaryExternalId: string
+): Promise<TerritoryBoundaryLink> {
+  return requestJson(`/api/v1/geography/territory-links/${territoryId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      checksum_sha256: checksumSha256,
+      boundary_external_id: boundaryExternalId
+    })
+  });
 }
 
 export function seedIreland(): Promise<SeedResult> {
