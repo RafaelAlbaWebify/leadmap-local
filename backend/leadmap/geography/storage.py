@@ -1,6 +1,7 @@
 import json
 import re
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -10,6 +11,7 @@ from .validation import BoundaryValidationError
 
 ARTIFACT_SCHEMA_VERSION = "1"
 _CHECKSUM_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+_ARTIFACT_FILENAME_PATTERN = re.compile(r"^boundaries-([0-9a-f]{64})\.json$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +90,36 @@ def load_boundary_artifact(*, directory: Path, checksum_sha256: str) -> dict[str
     if document.get("feature_count") != len(document["boundaries"]):
         raise BoundaryValidationError(f"Geographic artifact feature count does not match: {path}.")
     return document
+
+
+def list_boundary_artifacts(*, directory: Path) -> list[dict[str, Any]]:
+    if not directory.is_dir():
+        return []
+
+    artifacts: list[dict[str, Any]] = []
+    for path in directory.iterdir():
+        match = _ARTIFACT_FILENAME_PATTERN.fullmatch(path.name)
+        if match is None or not path.is_file():
+            continue
+        artifacts.append(
+            load_boundary_artifact(
+                directory=directory,
+                checksum_sha256=match.group(1),
+            )
+        )
+
+    def retrieved_at(document: dict[str, Any]) -> datetime:
+        source = document.get("source")
+        if not isinstance(source, dict) or not isinstance(source.get("retrieved_at"), str):
+            raise BoundaryValidationError("Geographic artifact retrieval timestamp is invalid.")
+        try:
+            return datetime.fromisoformat(source["retrieved_at"])
+        except ValueError as exc:
+            raise BoundaryValidationError(
+                "Geographic artifact retrieval timestamp is invalid."
+            ) from exc
+
+    return sorted(artifacts, key=retrieved_at, reverse=True)
 
 
 def store_boundary_artifact(
