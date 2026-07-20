@@ -2,17 +2,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const mapMethods = {
-  loaded: vi.fn(() => true),
-  addSource: vi.fn(),
-  addLayer: vi.fn(),
-  getSource: vi.fn(() => undefined),
-  on: vi.fn(),
-  once: vi.fn(),
-  fitBounds: vi.fn(),
-  getCanvas: vi.fn(() => ({ style: { cursor: "" } })),
-  remove: vi.fn()
-};
+const { mapMethods } = vi.hoisted(() => ({
+  mapMethods: {
+    loaded: vi.fn(() => true),
+    addSource: vi.fn(),
+    addLayer: vi.fn(),
+    getSource: vi.fn(() => undefined),
+    on: vi.fn(),
+    once: vi.fn(),
+    fitBounds: vi.fn(),
+    getCanvas: vi.fn(() => ({ style: { cursor: "" } })),
+    remove: vi.fn()
+  }
+}));
 
 vi.mock("maplibre-gl", () => ({
   default: { Map: vi.fn(() => mapMethods) }
@@ -101,7 +103,10 @@ vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit
   return { ok: true, json: async () => responses[url] };
 }));
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 function renderApp() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -113,7 +118,7 @@ describe("App", () => {
     renderApp();
     expect(await screen.findByText("Local Authorities 2026")).toBeInTheDocument();
     expect(screen.getByText("1 validated boundaries")).toBeInTheDocument();
-    expect(mapMethods.addSource).toHaveBeenCalled();
+    await waitFor(() => expect(mapMethods.addSource).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: /Territories/i }));
     expect(await screen.findByText("Galway City")).toBeInTheDocument();
   });
