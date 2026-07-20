@@ -149,7 +149,7 @@ try {
 
   const mapBox = await page.locator(".geography-map").boundingBox();
   if (!mapBox) throw new Error("Geographic map did not produce a visible bounding box.");
-  await page.mouse.click(mapBox.x + mapBox.width * 0.25, mapBox.y + mapBox.height * 0.5);
+  await page.mouse.click(mapBox.x + mapBox.width * 0.45, mapBox.y + mapBox.height * 0.5);
   await page.locator(".geography-detail").getByRole("heading", { name: "Galway City" }).waitFor();
   await page.waitForTimeout(250);
   await page.screenshot({
