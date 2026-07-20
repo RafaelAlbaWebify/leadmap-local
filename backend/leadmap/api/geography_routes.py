@@ -15,9 +15,7 @@ def get_geographic_artifact_directory() -> Path:
     return Path(get_settings().geographic_artifact_dir)
 
 
-GeographicArtifactDirectoryDependency = Annotated[
-    Path, Depends(get_geographic_artifact_directory)
-]
+GeographicArtifactDirectoryDependency = Annotated[Path, Depends(get_geographic_artifact_directory)]
 
 
 @router.get(
