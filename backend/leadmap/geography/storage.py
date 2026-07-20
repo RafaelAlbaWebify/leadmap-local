@@ -68,7 +68,9 @@ def _validate_existing(path: Path, artifact: BoundaryImportArtifact) -> None:
 def load_boundary_artifact(*, directory: Path, checksum_sha256: str) -> dict[str, Any]:
     checksum = checksum_sha256.strip().lower()
     if _CHECKSUM_PATTERN.fullmatch(checksum) is None:
-        raise BoundaryValidationError("Geographic artifact checksum must be 64 lowercase hex characters.")
+        raise BoundaryValidationError(
+            "Geographic artifact checksum must be 64 lowercase hex characters."
+        )
 
     path = directory / f"boundaries-{checksum}.json"
     if not path.is_file():
@@ -76,15 +78,25 @@ def load_boundary_artifact(*, directory: Path, checksum_sha256: str) -> dict[str
 
     document = _read_document(path)
     if document.get("schema_version") != ARTIFACT_SCHEMA_VERSION:
-        raise BoundaryValidationError(f"Geographic artifact schema is unsupported: {path}.")
+        raise BoundaryValidationError(
+            f"Geographic artifact schema is unsupported: {path}."
+        )
     if document.get("checksum_sha256") != checksum:
-        raise BoundaryValidationError(f"Geographic artifact checksum does not match: {path}.")
+        raise BoundaryValidationError(
+            f"Geographic artifact checksum does not match: {path}."
+        )
     if not isinstance(document.get("source"), dict):
-        raise BoundaryValidationError(f"Geographic artifact source metadata is invalid: {path}.")
+        raise BoundaryValidationError(
+            f"Geographic artifact source metadata is invalid: {path}."
+        )
     if not isinstance(document.get("boundaries"), list):
-        raise BoundaryValidationError(f"Geographic artifact boundaries are invalid: {path}.")
+        raise BoundaryValidationError(
+            f"Geographic artifact boundaries are invalid: {path}."
+        )
     if document.get("feature_count") != len(document["boundaries"]):
-        raise BoundaryValidationError(f"Geographic artifact feature count does not match: {path}.")
+        raise BoundaryValidationError(
+            f"Geographic artifact feature count does not match: {path}."
+        )
     return document
 
 
