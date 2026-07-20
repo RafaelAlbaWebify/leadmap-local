@@ -1,5 +1,6 @@
 import math
 from collections.abc import Mapping, Sequence
+from typing import cast
 
 from .models import (
     BoundaryCollection,
@@ -25,7 +26,7 @@ def _require_mapping(value: object, path: str) -> Mapping[str, object]:
 
 
 def _require_sequence(value: object, path: str) -> Sequence[object]:
-    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+    if isinstance(value, str | bytes) or not isinstance(value, Sequence):
         raise BoundaryValidationError(f"{path} must be an array.")
     return value
 
@@ -47,9 +48,9 @@ def _parse_coordinate(value: object, path: str) -> Coordinate:
 
     longitude = sequence[0]
     latitude = sequence[1]
-    if isinstance(longitude, bool) or not isinstance(longitude, (int, float)):
+    if isinstance(longitude, bool) or not isinstance(longitude, int | float):
         raise BoundaryValidationError(f"{path}[0] must be a finite number.")
-    if isinstance(latitude, bool) or not isinstance(latitude, (int, float)):
+    if isinstance(latitude, bool) or not isinstance(latitude, int | float):
         raise BoundaryValidationError(f"{path}[1] must be a finite number.")
 
     lon = float(longitude)
@@ -91,19 +92,24 @@ def _parse_multi_polygon(value: object, path: str) -> MultiPolygonCoordinates:
     )
 
 
-def _all_coordinates(coordinates: GeometryCoordinates) -> tuple[Coordinate, ...]:
-    points: list[Coordinate] = []
-    for polygon_or_ring in coordinates:
-        if polygon_or_ring and isinstance(polygon_or_ring[0][0], tuple):
-            for ring in polygon_or_ring:
-                points.extend(ring)
-        else:
-            points.extend(polygon_or_ring)  # type: ignore[arg-type]
-    return tuple(points)
+def _polygon_points(polygon: PolygonCoordinates) -> tuple[Coordinate, ...]:
+    return tuple(point for ring in polygon for point in ring)
 
 
-def _bounding_box(coordinates: GeometryCoordinates) -> BoundingBox:
-    points = _all_coordinates(coordinates)
+def _all_coordinates(
+    geometry_type: GeometryType, coordinates: GeometryCoordinates
+) -> tuple[Coordinate, ...]:
+    if geometry_type == "Polygon":
+        return _polygon_points(cast(PolygonCoordinates, coordinates))
+
+    multi_polygon = cast(MultiPolygonCoordinates, coordinates)
+    return tuple(point for polygon in multi_polygon for point in _polygon_points(polygon))
+
+
+def _bounding_box(
+    geometry_type: GeometryType, coordinates: GeometryCoordinates
+) -> BoundingBox:
+    points = _all_coordinates(geometry_type, coordinates)
     longitudes = [point[0] for point in points]
     latitudes = [point[1] for point in points]
     return BoundingBox(
@@ -155,19 +161,19 @@ def validate_feature_collection(
 
         geometry = _require_mapping(feature.get("geometry"), f"{feature_path}.geometry")
         geometry_type_value = geometry.get("type")
-        if geometry_type_value not in ("Polygon", "MultiPolygon"):
-            raise BoundaryValidationError(
-                f"{feature_path}.geometry.type must be 'Polygon' or 'MultiPolygon'."
-            )
-        geometry_type: GeometryType = geometry_type_value
-
-        if geometry_type == "Polygon":
+        if geometry_type_value == "Polygon":
+            geometry_type: GeometryType = "Polygon"
             coordinates: GeometryCoordinates = _parse_polygon(
                 geometry.get("coordinates"), f"{feature_path}.geometry.coordinates"
             )
-        else:
+        elif geometry_type_value == "MultiPolygon":
+            geometry_type = "MultiPolygon"
             coordinates = _parse_multi_polygon(
                 geometry.get("coordinates"), f"{feature_path}.geometry.coordinates"
+            )
+        else:
+            raise BoundaryValidationError(
+                f"{feature_path}.geometry.type must be 'Polygon' or 'MultiPolygon'."
             )
 
         seen_ids.add(normalized_id)
@@ -178,7 +184,7 @@ def validate_feature_collection(
                 name=name,
                 geometry_type=geometry_type,
                 coordinates=coordinates,
-                bounding_box=_bounding_box(coordinates),
+                bounding_box=_bounding_box(geometry_type, coordinates),
             )
         )
 
