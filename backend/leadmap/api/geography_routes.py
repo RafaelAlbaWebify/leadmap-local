@@ -4,9 +4,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.leadmap.config import get_settings
-from backend.leadmap.geography import BoundaryValidationError, load_boundary_artifact
+from backend.leadmap.geography import (
+    BoundaryValidationError,
+    list_boundary_artifacts,
+    load_boundary_artifact,
+)
 
-from .schemas import GeographyArtifactResponse
+from .schemas import GeographyArtifactResponse, GeographyArtifactSummaryResponse
 
 router = APIRouter(prefix="/api/v1/geography", tags=["geography"])
 
@@ -16,6 +20,20 @@ def get_geographic_artifact_directory() -> Path:
 
 
 GeographicArtifactDirectoryDependency = Annotated[Path, Depends(get_geographic_artifact_directory)]
+
+
+@router.get("/artifacts", response_model=list[GeographyArtifactSummaryResponse])
+def get_geographic_artifact_catalog(
+    directory: GeographicArtifactDirectoryDependency,
+) -> list[GeographyArtifactSummaryResponse]:
+    try:
+        artifacts = list_boundary_artifacts(directory=directory)
+    except BoundaryValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+    return [GeographyArtifactSummaryResponse.model_validate(item) for item in artifacts]
 
 
 @router.get(
