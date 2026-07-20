@@ -87,9 +87,7 @@ def _parse_multi_polygon(value: object, path: str) -> MultiPolygonCoordinates:
     sequence = _require_sequence(value, path)
     if not sequence:
         raise BoundaryValidationError(f"{path} must contain at least one polygon.")
-    return tuple(
-        _parse_polygon(item, f"{path}[{index}]") for index, item in enumerate(sequence)
-    )
+    return tuple(_parse_polygon(item, f"{path}[{index}]") for index, item in enumerate(sequence))
 
 
 def _polygon_points(polygon: PolygonCoordinates) -> tuple[Coordinate, ...]:
@@ -106,9 +104,7 @@ def _all_coordinates(
     return tuple(point for polygon in multi_polygon for point in _polygon_points(polygon))
 
 
-def _bounding_box(
-    geometry_type: GeometryType, coordinates: GeometryCoordinates
-) -> BoundingBox:
+def _bounding_box(geometry_type: GeometryType, coordinates: GeometryCoordinates) -> BoundingBox:
     points = _all_coordinates(geometry_type, coordinates)
     longitudes = [point[0] for point in points]
     latitudes = [point[1] for point in points]
@@ -152,9 +148,7 @@ def validate_feature_collection(
         external_id = _require_text(
             properties.get(id_field), f"{feature_path}.properties.{id_field}"
         )
-        name = _require_text(
-            properties.get(name_field), f"{feature_path}.properties.{name_field}"
-        )
+        name = _require_text(properties.get(name_field), f"{feature_path}.properties.{name_field}")
 
         normalized_id = _normalize_key(external_id)
         normalized_name = _normalize_key(name)
