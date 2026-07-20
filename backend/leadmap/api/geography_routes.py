@@ -85,7 +85,10 @@ def get_territory_boundary_links(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
-    return [TerritoryBoundaryLinkResponse.model_validate(link, from_attributes=True) for link in links]
+    return [
+        TerritoryBoundaryLinkResponse.model_validate(link, from_attributes=True)
+        for link in links
+    ]
 
 
 @router.put(
@@ -118,15 +121,19 @@ def put_territory_boundary_link(
         ) from exc
 
     boundaries = document.get("boundaries")
-    boundary = next(
-        (
-            item
-            for item in boundaries
-            if isinstance(item, dict)
-            and item.get("external_id") == payload.boundary_external_id
-        ),
-        None,
-    ) if isinstance(boundaries, list) else None
+    boundary = (
+        next(
+            (
+                item
+                for item in boundaries
+                if isinstance(item, dict)
+                and item.get("external_id") == payload.boundary_external_id
+            ),
+            None,
+        )
+        if isinstance(boundaries, list)
+        else None
+    )
     if boundary is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
