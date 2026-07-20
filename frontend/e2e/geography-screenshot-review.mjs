@@ -95,10 +95,10 @@ try {
   await waitForServer("http://127.0.0.1:5173");
   await mkdir("artifacts/screenshots", { recursive: true });
 
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--use-gl=swiftshader", "--enable-webgl"]
-  });
+  const chromiumArgs = process.platform === "win32"
+    ? ["--enable-webgl"]
+    : ["--use-gl=swiftshader", "--enable-webgl"];
+  const browser = await chromium.launch({ headless: true, args: chromiumArgs });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
   page.on("console", (message) => {
