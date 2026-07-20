@@ -8,6 +8,7 @@ from .models import BoundaryCollection, BoundingBox, NormalizedBoundary
 from .storage import (
     ARTIFACT_SCHEMA_VERSION,
     StoredBoundaryArtifact,
+    list_boundary_artifacts,
     load_boundary_artifact,
     store_boundary_artifact,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "NormalizedBoundary",
     "StoredBoundaryArtifact",
     "import_boundary_bytes",
+    "list_boundary_artifacts",
     "load_boundary_artifact",
     "store_boundary_artifact",
     "validate_feature_collection",
