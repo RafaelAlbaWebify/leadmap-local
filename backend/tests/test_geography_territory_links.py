@@ -70,11 +70,16 @@ def test_persists_and_lists_validated_territory_link(
         "boundary_external_id": "la-galway-city",
         "boundary_name": "Galway City",
     }
-    assert client.get("/api/v1/geography/territory-links").json() == [response.json()]
+    assert client.get("/api/v1/geography/territory-links").json() == [
+        response.json()
+    ]
     assert (tmp_path / "territory-boundary-links.json").exists()
 
 
-def test_replaces_existing_link_for_same_territory(client: TestClient, tmp_path: Path) -> None:
+def test_replaces_existing_link_for_same_territory(
+    client: TestClient,
+    tmp_path: Path,
+) -> None:
     checksum = _stored_checksum(tmp_path)
     territory_id = _territory_id(client)
     app.dependency_overrides[get_geographic_artifact_directory] = lambda: tmp_path
@@ -111,7 +116,10 @@ def test_rejects_missing_territory(client: TestClient, tmp_path: Path) -> None:
     assert response.json()["detail"] == "Territory not found."
 
 
-def test_rejects_boundary_not_present_in_artifact(client: TestClient, tmp_path: Path) -> None:
+def test_rejects_boundary_not_present_in_artifact(
+    client: TestClient,
+    tmp_path: Path,
+) -> None:
     checksum = _stored_checksum(tmp_path)
     territory_id = _territory_id(client)
     app.dependency_overrides[get_geographic_artifact_directory] = lambda: tmp_path
@@ -128,8 +136,14 @@ def test_rejects_boundary_not_present_in_artifact(client: TestClient, tmp_path: 
     assert "does not exist" in response.json()["detail"]
 
 
-def test_fails_closed_for_corrupt_link_store(client: TestClient, tmp_path: Path) -> None:
-    (tmp_path / "territory-boundary-links.json").write_text("not-json", encoding="utf-8")
+def test_fails_closed_for_corrupt_link_store(
+    client: TestClient,
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "territory-boundary-links.json").write_text(
+        "not-json",
+        encoding="utf-8",
+    )
     app.dependency_overrides[get_geographic_artifact_directory] = lambda: tmp_path
 
     response = client.get("/api/v1/geography/territory-links")
