@@ -30,7 +30,9 @@ def get_geographic_artifact_directory() -> Path:
     return Path(get_settings().geographic_artifact_dir)
 
 
-GeographicArtifactDirectoryDependency = Annotated[Path, Depends(get_geographic_artifact_directory)]
+GeographicArtifactDirectoryDependency = Annotated[
+    Path, Depends(get_geographic_artifact_directory)
+]
 SessionDependency = Annotated[Session, Depends(get_session)]
 
 
@@ -102,7 +104,9 @@ def put_territory_boundary_link(
     session: SessionDependency,
 ) -> TerritoryBoundaryLinkResponse:
     if LeadRepository(session).get_territory(territory_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found."
+        )
 
     try:
         document = load_boundary_artifact(
