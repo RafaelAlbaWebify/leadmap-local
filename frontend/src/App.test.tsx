@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const { mapMethods } = vi.hoisted(() => ({
   mapMethods: {
     loaded: vi.fn(() => true),
+    resize: vi.fn(),
     addSource: vi.fn(),
     addLayer: vi.fn(),
     getSource: vi.fn(() => undefined),
@@ -103,10 +104,7 @@ vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit
   return { ok: true, json: async () => responses[url] };
 }));
 
-afterEach(() => {
-  cleanup();
-  vi.clearAllMocks();
-});
+afterEach(() => cleanup());
 
 function renderApp() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -118,7 +116,8 @@ describe("App", () => {
     renderApp();
     expect(await screen.findByText("Local Authorities 2026")).toBeInTheDocument();
     expect(screen.getByText("1 validated boundaries")).toBeInTheDocument();
-    await waitFor(() => expect(mapMethods.addSource).toHaveBeenCalled());
+    expect(mapMethods.addSource).toHaveBeenCalled();
+    expect(mapMethods.resize).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /Territories/i }));
     expect(await screen.findByText("Galway City")).toBeInTheDocument();
   });
