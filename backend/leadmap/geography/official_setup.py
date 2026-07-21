@@ -92,13 +92,15 @@ def _choose_field(
         if key is None:
             continue
         values = [item.get(key) for item in properties]
-        if any(value is None or str(value).strip() == "" for value in values):
+        if any(not isinstance(value, str) or not value.strip() for value in values):
             continue
-        if require_unique and len({str(value).strip() for value in values}) != len(values):
+        if require_unique and len({value.strip() for value in values if isinstance(value, str)}) != len(
+            values
+        ):
             continue
         return key
     raise BoundaryValidationError(
-        "Could not identify a safe property field. Available fields: " + ", ".join(available)
+        "Could not identify a safe text property field. Available fields: " + ", ".join(available)
     )
 
 
