@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -22,6 +22,7 @@ data/*.db
 data/*.sqlite*
 data/exports/
 data/diagnostics/
+data/geography/
 browser-profile/
 playwright-report/
 test-results/
