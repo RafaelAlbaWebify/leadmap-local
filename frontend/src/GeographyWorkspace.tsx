@@ -4,11 +4,17 @@ import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from "maplibr
 import {
   fetchGeographyArtifact,
   fetchGeographyArtifacts,
+  fetchGeographyCoverage,
   fetchTerritories,
   fetchTerritoryBoundaryLinks,
   saveTerritoryBoundaryLink
 } from "./api";
-import type { GeographyArtifact, GeographyBoundary } from "./types";
+import type {
+  FreshnessStatus,
+  GeographyArtifact,
+  GeographyBoundary,
+  TerritoryCoverage
+} from "./types";
 
 const EMPTY_STYLE = {
   version: 8 as const,
@@ -16,15 +22,39 @@ const EMPTY_STYLE = {
   layers: [{ id: "background", type: "background" as const, paint: { "background-color": "#f3f5f7" } }]
 };
 
-function asFeatureCollection(artifact: GeographyArtifact): GeoJSON.FeatureCollection {
+const FRESHNESS_COLORS: Record<FreshnessStatus | "unlinked", string> = {
+  fresh: "#6fa77d",
+  ageing: "#c5a14d",
+  stale: "#c76b6b",
+  never_verified: "#8798a5",
+  unlinked: "#c6ced5"
+};
+
+function asFeatureCollection(
+  artifact: GeographyArtifact,
+  coverage: TerritoryCoverage[]
+): GeoJSON.FeatureCollection {
+  const coverageByBoundary = new Map(
+    coverage.map((item) => [item.boundary_external_id, item])
+  );
   return {
     type: "FeatureCollection",
-    features: artifact.boundaries.map((boundary) => ({
-      type: "Feature",
-      id: boundary.external_id,
-      properties: { external_id: boundary.external_id, name: boundary.name },
-      geometry: { type: boundary.geometry_type, coordinates: boundary.coordinates } as GeoJSON.Geometry
-    }))
+    features: artifact.boundaries.map((boundary) => {
+      const item = coverageByBoundary.get(boundary.external_id);
+      return {
+        type: "Feature",
+        id: boundary.external_id,
+        properties: {
+          external_id: boundary.external_id,
+          name: boundary.name,
+          fill_color: FRESHNESS_COLORS[item?.freshness ?? "unlinked"]
+        },
+        geometry: {
+          type: boundary.geometry_type,
+          coordinates: boundary.coordinates
+        } as GeoJSON.Geometry
+      };
+    })
   };
 }
 
@@ -51,6 +81,7 @@ export function GeographyWorkspace() {
   const catalog = useQuery({ queryKey: ["geography-artifacts"], queryFn: fetchGeographyArtifacts });
   const territories = useQuery({ queryKey: ["territories"], queryFn: fetchTerritories });
   const links = useQuery({ queryKey: ["territory-boundary-links"], queryFn: fetchTerritoryBoundaryLinks });
+  const coverage = useQuery({ queryKey: ["geography-coverage"], queryFn: fetchGeographyCoverage });
   const selectedArtifact = catalog.data?.[0];
   const artifact = useQuery({
     queryKey: ["geography-artifact", selectedArtifact?.checksum_sha256],
@@ -64,15 +95,21 @@ export function GeographyWorkspace() {
       selectedBoundary!.external_id
     ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["territory-boundary-links"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["territory-boundary-links"] }),
+        queryClient.invalidateQueries({ queryKey: ["geography-coverage"] })
+      ]);
     }
   });
 
   const currentLink = links.data?.find((link) => link.boundary_external_id === selectedBoundary?.external_id);
   const linkedTerritory = territories.data?.find((territory) => territory.id === currentLink?.territory_id);
+  const selectedCoverage = coverage.data?.find(
+    (item) => item.boundary_external_id === selectedBoundary?.external_id
+  );
   const featureCollection = useMemo(
-    () => (artifact.data ? asFeatureCollection(artifact.data) : null),
-    [artifact.data]
+    () => artifact.data ? asFeatureCollection(artifact.data, coverage.data ?? []) : null,
+    [artifact.data, coverage.data]
   );
 
   useEffect(() => {
@@ -102,7 +139,7 @@ export function GeographyWorkspace() {
           id: "boundary-fill",
           type: "fill",
           source: "boundaries",
-          paint: { "fill-color": "#6f8899", "fill-opacity": 0.28 }
+          paint: { "fill-color": ["get", "fill_color"], "fill-opacity": 0.42 }
         });
         map.addLayer({
           id: "boundary-line",
@@ -127,7 +164,7 @@ export function GeographyWorkspace() {
   if (catalog.isLoading) return <div className="map-state">Loading geographic catalog…</div>;
   if (catalog.isError) return <div className="map-state error">The geographic catalog could not be loaded.</div>;
   if (!selectedArtifact) return <div className="map-state">No geographic artifacts are available yet.</div>;
-  if (artifact.isError) return <div className="map-state error">The selected geographic artifact is invalid or unavailable.</div>;
+  if (artifact.isError || coverage.isError) return <div className="map-state error">The selected geographic workspace is invalid or unavailable.</div>;
 
   return (
     <div className="geography-workspace">
@@ -136,9 +173,25 @@ export function GeographyWorkspace() {
         <span className="badge neutral">{selectedArtifact.source.edition_year}</span>
         <h3>{selectedBoundary?.name ?? selectedArtifact.source.dataset_title}</h3>
         <p>{selectedBoundary ? "Selected local authority" : `${selectedArtifact.feature_count} validated boundaries`}</p>
+        <div className="coverage-legend" aria-label="Coverage freshness legend">
+          {(["fresh", "ageing", "stale", "never_verified", "unlinked"] as const).map((status) => (
+            <span key={status}><i style={{ background: FRESHNESS_COLORS[status] }} />{status.replace("_", " ")}</span>
+          ))}
+        </div>
         {selectedBoundary && (
           <div className="territory-link-editor">
             <p>{linkedTerritory ? `Linked to ${linkedTerritory.name}` : "Not linked to a LeadMap territory"}</p>
+            {selectedCoverage && (
+              <div className="coverage-summary">
+                <strong>{selectedCoverage.lead_count} leads</strong>
+                <span className={`badge ${selectedCoverage.freshness}`}>{selectedCoverage.freshness.replace("_", " ")}</span>
+                <small>
+                  {selectedCoverage.latest_observed_at
+                    ? `Latest observation ${new Date(selectedCoverage.latest_observed_at).toLocaleDateString()}`
+                    : "No observations recorded"}
+                </small>
+              </div>
+            )}
             <label>
               Territory
               <select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)}>
