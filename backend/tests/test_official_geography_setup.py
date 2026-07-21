@@ -54,12 +54,9 @@ def test_groups_fragments_and_reuses_artifact(tmp_path: Path) -> None:
     artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert len(artifact["boundaries"]) == 31
     assert all(
-        boundary["geometry_type"] == "MultiPolygon"
-        for boundary in artifact["boundaries"]
+        boundary["geometry_type"] == "MultiPolygon" for boundary in artifact["boundaries"]
     )
-    assert all(
-        len(boundary["coordinates"]) == 2 for boundary in artifact["boundaries"]
-    )
+    assert all(len(boundary["coordinates"]) == 2 for boundary in artifact["boundaries"])
 
     second = setup_official_geography(
         artifact_directory=tmp_path,
