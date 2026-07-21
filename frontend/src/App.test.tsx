@@ -59,6 +59,16 @@ const responses: Record<string, unknown> = {
     created_at: "2026-07-19T00:00:00Z"
   }],
   "/api/v1/leads": [],
+  "/api/v1/geography/coverage": [{
+    territory_id: "territory-1",
+    territory_name: "Galway City",
+    checksum_sha256: checksum,
+    boundary_external_id: "galway-city",
+    boundary_name: "Galway City",
+    lead_count: 12,
+    latest_observed_at: "2026-07-18T12:00:00Z",
+    freshness: "fresh"
+  }],
   "/api/v1/geography/artifacts": [{
     schema_version: "1",
     idempotency_key: "import-1",
@@ -132,9 +142,20 @@ describe("App", () => {
     renderApp();
     expect(await screen.findByText("Local Authorities 2026")).toBeInTheDocument();
     expect(screen.getByText("1 validated boundaries")).toBeInTheDocument();
+    expect(screen.getByLabelText("Coverage freshness legend")).toBeInTheDocument();
     await waitFor(() => expect(mapMethods.addSource).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: /Territories/i }));
     expect(await screen.findByText("Galway City")).toBeInTheDocument();
+  });
+
+  it("shows coverage details for a selected boundary", async () => {
+    renderApp();
+    await waitFor(() => expect(mapMethods.on).toHaveBeenCalled());
+    const clickCall = mapMethods.on.mock.calls.find((call) => call[0] === "click");
+    clickCall?.[2]({ features: [{ properties: { external_id: "galway-city" } }] });
+    expect(await screen.findByText("12 leads")).toBeInTheDocument();
+    expect(screen.getByText("fresh")).toBeInTheDocument();
+    expect(screen.getByText(/Latest observation/)).toBeInTheDocument();
   });
 
   it("assigns a selected boundary to a territory", async () => {
