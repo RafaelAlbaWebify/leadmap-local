@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from backend.leadmap.geography.official_setup import setup_official_geography
 from backend.leadmap.geography.validation import BoundaryValidationError
 
