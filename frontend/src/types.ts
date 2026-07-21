@@ -103,3 +103,14 @@ export interface TerritoryBoundaryLink {
   boundary_external_id: string;
   boundary_name: string;
 }
+
+export interface TerritoryCoverage {
+  territory_id: string;
+  territory_name: string;
+  checksum_sha256: string;
+  boundary_external_id: string;
+  boundary_name: string;
+  lead_count: number;
+  latest_observed_at: string | null;
+  freshness: FreshnessStatus;
+}
