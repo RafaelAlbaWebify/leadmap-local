@@ -34,20 +34,28 @@ Backend: http://127.0.0.1:8000
 API docs: http://127.0.0.1:8000/docs  
 Frontend: http://127.0.0.1:5173
 
-## Import downloaded geographic boundaries
+## Set up the official Ireland boundaries
 
-The application never downloads boundary data at runtime. Download the licensed GeoJSON yourself, inspect its property names, and pass those property fields explicitly:
+Run one command from the repository:
+
+```powershell
+.\scripts\setup-ireland-geography.ps1
+```
+
+This user-initiated setup command downloads the official Tailte Éireann 2026 local-authority GeoJSON, requires exactly 31 features, safely identifies the identifier and name fields, validates every geometry, records provenance and retrieval time, calculates a SHA-256 checksum, and writes a checksum-addressed artifact under `data/geography`. Repeating the command with unchanged source data is idempotent.
+
+The application itself still performs no runtime geography download. Tests and CI remain network-free.
+
+## Import another downloaded geographic source
+
+Use the lower-level command when importing a different licensed GeoJSON or when explicit source-field overrides are required:
 
 ```powershell
 .\scripts\import-geography.ps1 `
-  -SourceFile "C:\Downloads\ireland-local-authorities.geojson" `
+  -SourceFile "C:\Downloads\boundaries.geojson" `
   -IdField "<source identifier property>" `
   -NameField "<source name property>"
 ```
-
-The command validates the complete FeatureCollection, requires the expected 31 features by default, records provenance and retrieval time, calculates a SHA-256 checksum, and writes a checksum-addressed artifact under `data/geography`. Repeating an identical import is idempotent.
-
-Use the optional parameters to override source metadata, artifact directory, expected feature count, or retrieval timestamp when importing a different licensed dataset.
 
 ## Safety boundaries
 
@@ -56,7 +64,7 @@ Use the optional parameters to override source metadata, artifact directory, exp
 - Browser sessions are user-initiated and visible by default.
 - Live source adapters are isolated behind a provider interface.
 - Tests and CI use fixtures and do not access Google Maps.
-- Geographic data is imported explicitly; there is no runtime network fetch.
+- Geographic data is imported only through an explicit user command; there is no application runtime fetch.
 - Credentials and browser profiles are excluded from version control.
 - Exports contain only explicitly selected business records.
 
