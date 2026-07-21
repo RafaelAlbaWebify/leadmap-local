@@ -71,7 +71,7 @@ select { width: 100%; padding: 10px; border: 1px solid #d9dce1; border-radius: 6
 .export-card { text-decoration: none; color: #24272b; border: 1px solid #dfe2e6; border-radius: 8px; padding: 22px; display: grid; gap: 7px; }
 .export-card:hover { border-color: #999fa7; background: #fafafa; }
 .export-card span { color: #7b8189; font-size: 11px; }
-.geography-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 250px; min-height: 360px; border: 1px solid #e4e7eb; border-radius: 7px; overflow: hidden; background: #f7f8fa; }
+.geography-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 270px; min-height: 360px; border: 1px solid #e4e7eb; border-radius: 7px; overflow: hidden; background: #f7f8fa; }
 .geography-map { min-height: 360px; }
 .geography-detail { padding: 18px; border-left: 1px solid #e4e7eb; background: white; }
 .geography-detail h3 { margin: 14px 0 6px; font-size: 15px; line-height: 1.35; }
@@ -80,6 +80,11 @@ select { width: 100%; padding: 10px; border: 1px solid #d9dce1; border-radius: 6
 .geography-detail dl div { display: grid; gap: 3px; }
 .geography-detail dt { color: #8a9098; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
 .geography-detail dd { margin: 0; font-size: 11px; overflow-wrap: anywhere; }
+.coverage-legend { display: flex; flex-wrap: wrap; gap: 7px 10px; margin: 14px 0; }
+.coverage-legend span { display: inline-flex; align-items: center; gap: 5px; color: #697079; font-size: 9px; text-transform: capitalize; }
+.coverage-legend i { width: 9px; height: 9px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, .12); }
+.coverage-summary { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; margin: 10px 0; }
+.coverage-summary small { grid-column: 1 / -1; }
 .territory-link-editor { margin: 16px 0; padding: 12px; border: 1px solid #e2e5e9; border-radius: 6px; background: #f8f9fa; }
 .territory-link-editor label { margin: 10px 0 0; }
 .territory-link-editor .full { margin-top: 8px; }
