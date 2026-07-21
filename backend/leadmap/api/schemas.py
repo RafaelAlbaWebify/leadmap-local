@@ -3,6 +3,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend.leadmap.domain.enums import FreshnessStatus
+
 
 class LeadResponse(BaseModel):
     id: str
@@ -172,4 +174,4 @@ class TerritoryCoverageResponse(BaseModel):
     boundary_name: str
     lead_count: int
     latest_observed_at: datetime | None
-    freshness: Literal["fresh", "ageing", "stale", "never_verified"]
+    freshness: FreshnessStatus
