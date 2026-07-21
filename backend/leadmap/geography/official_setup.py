@@ -102,14 +102,10 @@ def _group_fragments(document: object) -> dict[str, object]:
         properties = feature.get("properties")
         geometry = feature.get("geometry")
         if not isinstance(properties, dict) or not isinstance(geometry, dict):
-            raise BoundaryValidationError(
-                f"Feature {index} is missing properties or geometry."
-            )
+            raise BoundaryValidationError(f"Feature {index} is missing properties or geometry.")
         authority = properties.get(GROUP_FIELD)
         if not isinstance(authority, str) or not authority.strip():
-            raise BoundaryValidationError(
-                f"Feature {index} has no usable {GROUP_FIELD} value."
-            )
+            raise BoundaryValidationError(f"Feature {index} has no usable {GROUP_FIELD} value.")
         coordinates = geometry.get("coordinates")
         if not isinstance(coordinates, list):
             raise BoundaryValidationError(f"Feature {index} has invalid coordinates.")
