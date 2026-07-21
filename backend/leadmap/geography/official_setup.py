@@ -98,8 +98,9 @@ def _choose_field(
         if require_unique and len(set(text_values)) != len(values):
             continue
         return key
+    available_fields = ", ".join(available)
     raise BoundaryValidationError(
-        "Could not identify a safe text property field. Available fields: " + ", ".join(available)
+        f"Could not identify a safe text property field. Available fields: {available_fields}"
     )
 
 
