@@ -1,11 +1,32 @@
 # LeadMap Local
 
-LeadMap Local is a local-first workspace for mapping Irish local-authority territories, assigning coverage, and tracking business discovery work.
+Local-first territory intelligence and lead research workbench.
 
-## Development setup
+## Status
+
+The executable workspace now includes persistent territory and lead data, an attributed Ireland geographic-artifact pipeline, MapLibre boundary rendering, boundary-to-territory assignment, and coverage/freshness overlays. Automated Linux and Windows Playwright review verifies the real application shell with deterministic fixtures.
+
+Live browser-source capture remains intentionally disabled until the assisted-session state machine is implemented and tested. CI and automated tests do not access Google Maps or download geographic data.
+
+## Current vertical slices
+
+1. Territory → query template → fixture capture → normalize/deduplicate → review table → freshness metadata → CSV/JSON export.
+2. Downloaded Ireland GeoJSON → strict validation → provenance/checksum → atomic local artifact → MapLibre selection → territory linkage → coverage/freshness presentation.
+
+## Technology
+
+- Backend: Python 3.12, FastAPI, SQLAlchemy 2, SQLite, Alembic
+- Browser adapter: Playwright (headed, assisted-session design)
+- Frontend: React, TypeScript, Vite, MapLibre
+- Tests: pytest, Vitest, Linux and Windows Playwright
+- Quality: Ruff, mypy, ESLint, TypeScript compiler
+- Automation: GitHub Actions, Dependabot, pre-commit
+
+## Quick start (Windows PowerShell)
 
 ```powershell
 .\scripts\bootstrap.ps1
+.\scripts\verify.ps1
 .\scripts\run-dev.ps1
 ```
 
@@ -46,3 +67,5 @@ Use the lower-level command when importing a different licensed GeoJSON or when 
 - Geographic data is imported only through an explicit user command; there is no application runtime fetch.
 - Credentials and browser profiles are excluded from version control.
 - Exports contain only explicitly selected business records.
+
+See `docs/` for the product specification, architecture and delivery plan.
