@@ -33,10 +33,7 @@ def _source_bytes(*, authority_count: int = 31, invalid_geometry: bool = False) 
                         "OBJECTID": authority_index * 2 + fragment_index + 1,
                         "ENG_NAME_VALUE": f"Authority {authority_index + 1}",
                     },
-                    "geometry": {
-                        "type": geometry_type,
-                        "coordinates": coordinates,
-                    },
+                    "geometry": {"type": geometry_type, "coordinates": coordinates},
                 }
             )
     return json.dumps({"type": "FeatureCollection", "features": features}).encode()
@@ -61,8 +58,7 @@ def test_groups_fragments_and_reuses_artifact(tmp_path: Path) -> None:
         for boundary in artifact["boundaries"]
     )
     assert all(
-        len(boundary["coordinates"]) == 2
-        for boundary in artifact["boundaries"]
+        len(boundary["coordinates"]) == 2 for boundary in artifact["boundaries"]
     )
 
     second = setup_official_geography(
