@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -45,6 +45,8 @@ def calculate_territory_coverage(
     ).one()
     lead_count = int(row[0] or 0)
     latest_observed_at = row[1]
+    if latest_observed_at is not None and latest_observed_at.tzinfo is None:
+        latest_observed_at = latest_observed_at.replace(tzinfo=UTC)
     return TerritoryCoverage(
         lead_count=lead_count,
         latest_observed_at=latest_observed_at,
