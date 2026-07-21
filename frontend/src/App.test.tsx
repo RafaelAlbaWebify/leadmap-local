@@ -32,6 +32,7 @@ const source = {
   retrieved_at: "2026-07-20T10:00:00Z"
 };
 
+let territoryLinks: unknown[] = [];
 const responses: Record<string, unknown> = {
   "/api/v1/dashboard": {
     total_businesses: 3,
@@ -83,6 +84,18 @@ const responses: Record<string, unknown> = {
 
 vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
+  if (url === "/api/v1/geography/territory-links") {
+    return { ok: true, json: async () => territoryLinks };
+  }
+  if (url === "/api/v1/geography/territory-links/territory-1" && init?.method === "PUT") {
+    territoryLinks = [{
+      territory_id: "territory-1",
+      checksum_sha256: checksum,
+      boundary_external_id: "galway-city",
+      boundary_name: "Galway City"
+    }];
+    return { ok: true, json: async () => territoryLinks[0] };
+  }
   if (url === "/api/v1/discovery/plan" && init?.method === "POST") {
     return {
       ok: true,
@@ -105,6 +118,7 @@ vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit
 
 afterEach(() => {
   cleanup();
+  territoryLinks = [];
   vi.clearAllMocks();
 });
 
@@ -121,6 +135,18 @@ describe("App", () => {
     await waitFor(() => expect(mapMethods.addSource).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: /Territories/i }));
     expect(await screen.findByText("Galway City")).toBeInTheDocument();
+  });
+
+  it("assigns a selected boundary to a territory", async () => {
+    renderApp();
+    await waitFor(() => expect(mapMethods.on).toHaveBeenCalled());
+    const clickCall = mapMethods.on.mock.calls.find((call) => call[0] === "click");
+    clickCall?.[2]({ features: [{ properties: { external_id: "galway-city" } }] });
+    expect(await screen.findByText("Not linked to a LeadMap territory")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Territory"), { target: { value: "territory-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Assign boundary" }));
+    expect(await screen.findByText("Territory link saved.")).toBeInTheDocument();
+    expect(await screen.findByText("Linked to Galway City")).toBeInTheDocument();
   });
 
   it("previews an assisted discovery plan", async () => {

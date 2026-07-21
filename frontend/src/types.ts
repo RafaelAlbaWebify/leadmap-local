@@ -96,3 +96,10 @@ export interface GeographyBoundary {
 export interface GeographyArtifact extends GeographyArtifactSummary {
   boundaries: GeographyBoundary[];
 }
+
+export interface TerritoryBoundaryLink {
+  territory_id: string;
+  checksum_sha256: string;
+  boundary_external_id: string;
+  boundary_name: string;
+}

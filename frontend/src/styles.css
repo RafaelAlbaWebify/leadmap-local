@@ -55,6 +55,7 @@ td small { color: #92969c; margin-top: 4px; font-size: 10px; }
 .full { width: 100%; justify-content: center; margin-top: 12px; }
 .body-copy { color: #686e76; font-size: 12px; line-height: 1.55; }
 .success-text { color: #287847; font-size: 11px; }
+.error-text { color: #963d3d; font-size: 11px; }
 .page-panel { margin-top: 22px; }
 .card-grid { display: grid; grid-template-columns: repeat(3, minmax(190px, 1fr)); gap: 12px; }
 .record-card { border: 1px solid #e3e5e8; border-radius: 7px; padding: 15px; }
@@ -70,7 +71,7 @@ select { width: 100%; padding: 10px; border: 1px solid #d9dce1; border-radius: 6
 .export-card { text-decoration: none; color: #24272b; border: 1px solid #dfe2e6; border-radius: 8px; padding: 22px; display: grid; gap: 7px; }
 .export-card:hover { border-color: #999fa7; background: #fafafa; }
 .export-card span { color: #7b8189; font-size: 11px; }
-.geography-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 220px; min-height: 360px; border: 1px solid #e4e7eb; border-radius: 7px; overflow: hidden; background: #f7f8fa; }
+.geography-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 250px; min-height: 360px; border: 1px solid #e4e7eb; border-radius: 7px; overflow: hidden; background: #f7f8fa; }
 .geography-map { min-height: 360px; }
 .geography-detail { padding: 18px; border-left: 1px solid #e4e7eb; background: white; }
 .geography-detail h3 { margin: 14px 0 6px; font-size: 15px; line-height: 1.35; }
@@ -79,6 +80,9 @@ select { width: 100%; padding: 10px; border: 1px solid #d9dce1; border-radius: 6
 .geography-detail dl div { display: grid; gap: 3px; }
 .geography-detail dt { color: #8a9098; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
 .geography-detail dd { margin: 0; font-size: 11px; overflow-wrap: anywhere; }
+.territory-link-editor { margin: 16px 0; padding: 12px; border: 1px solid #e2e5e9; border-radius: 6px; background: #f8f9fa; }
+.territory-link-editor label { margin: 10px 0 0; }
+.territory-link-editor .full { margin-top: 8px; }
 .map-state { min-height: 360px; display: grid; place-items: center; color: #777e87; font-size: 12px; border: 1px solid #e4e7eb; border-radius: 7px; background: #f8f9fa; }
 .map-state.error { color: #963d3d; background: #fff5f5; }
 .territory-cards { margin-top: 16px; }
