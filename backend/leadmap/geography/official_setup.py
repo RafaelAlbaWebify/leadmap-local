@@ -1,56 +1,43 @@
 import argparse
 import json
 import sys
-from collections.abc import Mapping, Sequence
+from collections import defaultdict
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 from urllib.error import URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from .imports import BoundarySourceMetadata, import_boundary_bytes
 from .storage import store_boundary_artifact
 from .validation import BoundaryValidationError
 
-OFFICIAL_GEOJSON_URL = (
-    "https://data-osi.opendata.arcgis.com/api/download/v1/items/"
-    "74b839e09e1c48f2b2fe4efccb52a73d/geojson?layers=3"
+SERVICE_URL = (
+    "https://services-eu1.arcgis.com/FH5XCsx8rYXqnjF5/arcgis/rest/services/"
+    "National_Statutory_Boundaries_-_Local_Authorities__Ungeneralised_-_2026/"
+    "FeatureServer"
 )
+LAYER_ID = 3
+OFFICIAL_GEOJSON_URL = f"{SERVICE_URL}/{LAYER_ID}"
 DATASET_TITLE = "Local Authorities - National Statutory Boundaries - Ungeneralised 2026"
 PUBLISHER = "Tailte Éireann"
 LICENCE = "CC BY 4.0"
 EDITION_YEAR = 2026
 EXPECTED_FEATURE_COUNT = 31
-
-_ID_CANDIDATES = (
-    "local_authority_id",
-    "localauthorityid",
-    "la_id",
-    "la_code",
-    "code",
-    "objectid",
-    "fid",
-    "id",
-)
-_NAME_CANDIDATES = (
-    "local_authority",
-    "localauthority",
-    "local_authority_name",
-    "localauthorityname",
-    "la_name",
-    "name",
-    "english_name",
-)
+EXPECTED_SOURCE_RECORDS = 9161
+GROUP_FIELD = "ENG_NAME_VALUE"
+OBJECT_ID_FIELD = "OBJECTID"
+PAGE_SIZE = 2000
+NORMALIZED_ID_FIELD = "LEADMAP_BOUNDARY_ID"
+NORMALIZED_NAME_FIELD = "LEADMAP_BOUNDARY_NAME"
 
 
-def _normalise_key(value: str) -> str:
-    return "".join(character for character in value.casefold() if character.isalnum())
-
-
-def _download(url: str) -> bytes:
+def _request_bytes(url: str) -> bytes:
     request = Request(url, headers={"User-Agent": "LeadMap-Local/0.3 geography setup"})
     try:
-        with urlopen(request, timeout=60) as response:
+        with urlopen(request, timeout=240) as response:
             data = cast(bytes, response.read())
     except (OSError, URLError) as exc:
         raise BoundaryValidationError(f"Official GeoJSON download failed: {exc}") from exc
@@ -59,79 +46,130 @@ def _download(url: str) -> bytes:
     return data
 
 
-def _feature_properties(document: object) -> list[Mapping[str, Any]]:
+def _page_url(offset: int) -> str:
+    return f"{OFFICIAL_GEOJSON_URL}/query?" + urlencode(
+        {
+            "where": "1=1",
+            "outFields": f"{OBJECT_ID_FIELD},{GROUP_FIELD}",
+            "returnGeometry": "true",
+            "outSR": "4326",
+            "orderByFields": f"{OBJECT_ID_FIELD} ASC",
+            "resultOffset": str(offset),
+            "resultRecordCount": str(PAGE_SIZE),
+            "f": "geojson",
+        }
+    )
+
+
+def _download_source_collection() -> dict[str, object]:
+    features: list[object] = []
+    offset = 0
+    while True:
+        try:
+            page: object = json.loads(_request_bytes(_page_url(offset)).decode("utf-8-sig"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise BoundaryValidationError("Official source is not valid UTF-8 JSON.") from exc
+        if not isinstance(page, dict) or page.get("type") != "FeatureCollection":
+            raise BoundaryValidationError(
+                "Official source page is not a GeoJSON FeatureCollection."
+            )
+        page_features = page.get("features")
+        if not isinstance(page_features, list):
+            raise BoundaryValidationError("Official source page has an invalid feature array.")
+        features.extend(page_features)
+        if len(page_features) < PAGE_SIZE:
+            break
+        offset += len(page_features)
+    if len(features) != EXPECTED_SOURCE_RECORDS:
+        raise BoundaryValidationError(
+            f"Official source must contain {EXPECTED_SOURCE_RECORDS} fragments; "
+            f"found {len(features)}."
+        )
+    return {"type": "FeatureCollection", "features": features}
+
+
+def _group_fragments(document: object) -> dict[str, object]:
     if not isinstance(document, dict) or document.get("type") != "FeatureCollection":
         raise BoundaryValidationError("Official source is not a GeoJSON FeatureCollection.")
     features = document.get("features")
-    if not isinstance(features, list) or len(features) != EXPECTED_FEATURE_COUNT:
-        actual = len(features) if isinstance(features, list) else "invalid"
-        raise BoundaryValidationError(
-            f"Official source must contain {EXPECTED_FEATURE_COUNT} features; found {actual}."
-        )
-    properties: list[Mapping[str, Any]] = []
+    if not isinstance(features, list):
+        raise BoundaryValidationError("Official source has an invalid feature array.")
+
+    grouped: dict[str, list[object]] = defaultdict(list)
     for index, feature in enumerate(features):
         if not isinstance(feature, dict):
-            raise BoundaryValidationError(f"Feature {index} has invalid properties.")
-        feature_properties = feature.get("properties")
-        if not isinstance(feature_properties, dict):
-            raise BoundaryValidationError(f"Feature {index} has invalid properties.")
-        properties.append(cast(Mapping[str, Any], feature_properties))
-    return properties
+            raise BoundaryValidationError(f"Feature {index} is invalid.")
+        properties = feature.get("properties")
+        geometry = feature.get("geometry")
+        if not isinstance(properties, dict) or not isinstance(geometry, dict):
+            raise BoundaryValidationError(f"Feature {index} is missing properties or geometry.")
+        authority = properties.get(GROUP_FIELD)
+        if not isinstance(authority, str) or not authority.strip():
+            raise BoundaryValidationError(f"Feature {index} has no usable {GROUP_FIELD} value.")
+        coordinates = geometry.get("coordinates")
+        if not isinstance(coordinates, list):
+            raise BoundaryValidationError(f"Feature {index} has invalid coordinates.")
+        geometry_type = geometry.get("type")
+        if geometry_type == "Polygon":
+            grouped[authority.strip()].append(coordinates)
+        elif geometry_type == "MultiPolygon":
+            grouped[authority.strip()].extend(coordinates)
+        else:
+            raise BoundaryValidationError(
+                f"Feature {index} geometry must be Polygon or MultiPolygon."
+            )
 
+    if len(grouped) != EXPECTED_FEATURE_COUNT:
+        raise BoundaryValidationError(
+            f"Official source must group into {EXPECTED_FEATURE_COUNT} authorities; "
+            f"found {len(grouped)}."
+        )
 
-def _choose_field(
-    properties: Sequence[Mapping[str, Any]],
-    *,
-    candidates: Sequence[str],
-    require_unique: bool,
-) -> str:
-    available = list(properties[0].keys())
-    normalised = {_normalise_key(key): key for key in available}
-    for candidate in candidates:
-        key = normalised.get(_normalise_key(candidate))
-        if key is None:
-            continue
-        values = [item.get(key) for item in properties]
-        if any(not isinstance(value, str) or not value.strip() for value in values):
-            continue
-        text_values = [value.strip() for value in values if isinstance(value, str)]
-        if require_unique and len(set(text_values)) != len(values):
-            continue
-        return key
-    available_fields = ", ".join(available)
-    raise BoundaryValidationError(
-        f"Could not identify a safe text property field. Available fields: {available_fields}"
-    )
+    normalized_features: list[dict[str, object]] = []
+    for authority in sorted(grouped):
+        normalized_features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    NORMALIZED_ID_FIELD: authority,
+                    NORMALIZED_NAME_FIELD: authority,
+                },
+                "geometry": {"type": "MultiPolygon", "coordinates": grouped[authority]},
+            }
+        )
+    return {"type": "FeatureCollection", "features": normalized_features}
 
 
 def setup_official_geography(
     *,
     artifact_directory: Path,
-    download_url: str = OFFICIAL_GEOJSON_URL,
     source_bytes: bytes | None = None,
 ) -> dict[str, object]:
-    raw_data = source_bytes if source_bytes is not None else _download(download_url)
-    try:
-        document: object = json.loads(raw_data.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise BoundaryValidationError("Official source is not valid UTF-8 JSON.") from exc
+    if source_bytes is None:
+        source_document: object = _download_source_collection()
+    else:
+        try:
+            source_document = json.loads(source_bytes.decode("utf-8-sig"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise BoundaryValidationError("Official source is not valid UTF-8 JSON.") from exc
 
-    properties = _feature_properties(document)
-    id_field = _choose_field(properties, candidates=_ID_CANDIDATES, require_unique=True)
-    name_field = _choose_field(properties, candidates=_NAME_CANDIDATES, require_unique=True)
+    normalized_document = _group_fragments(source_document)
+    normalized_bytes = json.dumps(
+        normalized_document, ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")
     retrieved_at = datetime.now(UTC)
     artifact = import_boundary_bytes(
-        raw_data,
+        normalized_bytes,
         source=BoundarySourceMetadata(
             dataset_title=DATASET_TITLE,
             publisher=PUBLISHER,
             licence=LICENCE,
             edition_year=EDITION_YEAR,
-            source_url=download_url,
+            source_url=OFFICIAL_GEOJSON_URL,
             retrieved_at=retrieved_at,
         ),
-        id_field=id_field,
-        name_field=name_field,
+        id_field=NORMALIZED_ID_FIELD,
+        name_field=NORMALIZED_NAME_FIELD,
         expected_feature_count=EXPECTED_FEATURE_COUNT,
     )
     stored = store_boundary_artifact(artifact, directory=artifact_directory)
@@ -140,9 +178,9 @@ def setup_official_geography(
         "checksum_sha256": artifact.checksum_sha256,
         "created": stored.created,
         "feature_count": artifact.collection.feature_count,
-        "id_field": id_field,
-        "name_field": name_field,
-        "source_url": download_url,
+        "id_field": NORMALIZED_ID_FIELD,
+        "name_field": NORMALIZED_NAME_FIELD,
+        "source_url": OFFICIAL_GEOJSON_URL,
     }
 
 
@@ -150,7 +188,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="leadmap-setup-ireland-geography",
         description=(
-            "Download, validate, and store the official 2026 Ireland local-authority boundaries."
+            "Download, group, validate, and store the official 2026 Ireland "
+            "local-authority boundaries."
         ),
     )
     parser.add_argument("--artifact-directory", type=Path, default=Path("data/geography"))

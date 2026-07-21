@@ -42,9 +42,9 @@ Run one command from the repository:
 .\scripts\setup-ireland-geography.ps1
 ```
 
-This user-initiated setup command downloads the official Tailte Éireann 2026 local-authority GeoJSON, requires exactly 31 features, safely identifies the identifier and name fields, validates every geometry, records provenance and retrieval time, calculates a SHA-256 checksum, and writes a checksum-addressed artifact under `data/geography`. Repeating the command with unchanged source data is idempotent.
+The official Tailte Éireann ArcGIS layer contains 9,161 polygon fragments. The setup command downloads them in pages, groups them by `ENG_NAME_VALUE` into Ireland's 31 local authorities, converts each authority to a normalized `MultiPolygon`, validates every geometry, records provenance and retrieval time, calculates a SHA-256 checksum, and writes a checksum-addressed artifact under `data/geography`. Repeating the command with unchanged normalized source data is idempotent.
 
-The application itself still performs no runtime geography download. Tests and CI remain network-free.
+The application itself performs no runtime geography download. Tests and CI remain network-free.
 
 ## Import another downloaded geographic source
 
