@@ -7,7 +7,8 @@ import type {
   QueryTemplate,
   SeedResult,
   Territory,
-  TerritoryBoundaryLink
+  TerritoryBoundaryLink,
+  TerritoryCoverage
 } from "./types";
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -45,6 +46,10 @@ export function fetchGeographyArtifact(checksumSha256: string): Promise<Geograph
 
 export function fetchTerritoryBoundaryLinks(): Promise<TerritoryBoundaryLink[]> {
   return requestJson("/api/v1/geography/territory-links");
+}
+
+export function fetchGeographyCoverage(): Promise<TerritoryCoverage[]> {
+  return requestJson("/api/v1/geography/coverage");
 }
 
 export function saveTerritoryBoundaryLink(
