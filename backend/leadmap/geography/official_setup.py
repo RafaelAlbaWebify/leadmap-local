@@ -53,15 +53,21 @@ def _download(url: str) -> bytes:
         with urlopen(request, timeout=60) as response:
             data = response.read()
     except (OSError, URLError) as exc:
-        raise BoundaryValidationError(f"Official GeoJSON download failed: {exc}") from exc
+        raise BoundaryValidationError(
+            f"Official GeoJSON download failed: {exc}"
+        ) from exc
     if not data:
-        raise BoundaryValidationError("Official GeoJSON download returned an empty response.")
+        raise BoundaryValidationError(
+            "Official GeoJSON download returned an empty response."
+        )
     return data
 
 
 def _feature_properties(document: object) -> list[Mapping[str, Any]]:
     if not isinstance(document, dict) or document.get("type") != "FeatureCollection":
-        raise BoundaryValidationError("Official source is not a GeoJSON FeatureCollection.")
+        raise BoundaryValidationError(
+            "Official source is not a GeoJSON FeatureCollection."
+        )
     features = document.get("features")
     if not isinstance(features, list) or len(features) != EXPECTED_FEATURE_COUNT:
         actual = len(features) if isinstance(features, list) else "invalid"
@@ -70,7 +76,9 @@ def _feature_properties(document: object) -> list[Mapping[str, Any]]:
         )
     properties: list[Mapping[str, Any]] = []
     for index, feature in enumerate(features):
-        if not isinstance(feature, dict) or not isinstance(feature.get("properties"), dict):
+        if not isinstance(feature, dict) or not isinstance(
+            feature.get("properties"), dict
+        ):
             raise BoundaryValidationError(f"Feature {index} has invalid properties.")
         properties.append(feature["properties"])
     return properties
@@ -91,11 +99,14 @@ def _choose_field(
         values = [item.get(key) for item in properties]
         if any(value is None or str(value).strip() == "" for value in values):
             continue
-        if require_unique and len({str(value).strip() for value in values}) != len(values):
+        if require_unique and len({str(value).strip() for value in values}) != len(
+            values
+        ):
             continue
         return key
     raise BoundaryValidationError(
-        "Could not identify a safe property field. Available fields: " + ", ".join(available)
+        "Could not identify a safe property field. Available fields: "
+        + ", ".join(available)
     )
 
 
@@ -109,11 +120,15 @@ def setup_official_geography(
     try:
         document = json.loads(raw_data.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise BoundaryValidationError("Official source is not valid UTF-8 JSON.") from exc
+        raise BoundaryValidationError(
+            "Official source is not valid UTF-8 JSON."
+        ) from exc
 
     properties = _feature_properties(document)
     id_field = _choose_field(properties, candidates=_ID_CANDIDATES, require_unique=True)
-    name_field = _choose_field(properties, candidates=_NAME_CANDIDATES, require_unique=True)
+    name_field = _choose_field(
+        properties, candidates=_NAME_CANDIDATES, require_unique=True
+    )
     retrieved_at = datetime.now(UTC)
     artifact = import_boundary_bytes(
         raw_data,
@@ -149,7 +164,9 @@ def build_parser() -> argparse.ArgumentParser:
             "local-authority boundaries."
         ),
     )
-    parser.add_argument("--artifact-directory", type=Path, default=Path("data/geography"))
+    parser.add_argument(
+        "--artifact-directory", type=Path, default=Path("data/geography")
+    )
     return parser
 
 
