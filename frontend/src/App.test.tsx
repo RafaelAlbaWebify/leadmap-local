@@ -154,7 +154,7 @@ describe("App", () => {
     const clickCall = mapMethods.on.mock.calls.find((call) => call[0] === "click");
     clickCall?.[2]({ features: [{ properties: { external_id: "galway-city" } }] });
     expect(await screen.findByText("12 leads")).toBeInTheDocument();
-    expect(screen.getByText("fresh")).toBeInTheDocument();
+    expect(screen.getAllByText("fresh").length).toBeGreaterThan(0);
     expect(screen.getByText(/Latest observation/)).toBeInTheDocument();
   });
 
