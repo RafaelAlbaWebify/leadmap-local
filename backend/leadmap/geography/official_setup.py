@@ -35,21 +35,14 @@ NORMALIZED_NAME_FIELD = "LEADMAP_BOUNDARY_NAME"
 
 
 def _request_bytes(url: str) -> bytes:
-    request = Request(
-        url,
-        headers={"User-Agent": "LeadMap-Local/0.3 geography setup"},
-    )
+    request = Request(url, headers={"User-Agent": "LeadMap-Local/0.3 geography setup"})
     try:
         with urlopen(request, timeout=240) as response:
             data = cast(bytes, response.read())
     except (OSError, URLError) as exc:
-        raise BoundaryValidationError(
-            f"Official GeoJSON download failed: {exc}"
-        ) from exc
+        raise BoundaryValidationError(f"Official GeoJSON download failed: {exc}") from exc
     if not data:
-        raise BoundaryValidationError(
-            "Official GeoJSON download returned an empty response."
-        )
+        raise BoundaryValidationError("Official GeoJSON download returned an empty response.")
     return data
 
 
@@ -73,22 +66,16 @@ def _download_source_collection() -> dict[str, object]:
     offset = 0
     while True:
         try:
-            page: object = json.loads(
-                _request_bytes(_page_url(offset)).decode("utf-8-sig")
-            )
+            page: object = json.loads(_request_bytes(_page_url(offset)).decode("utf-8-sig"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise BoundaryValidationError(
-                "Official source is not valid UTF-8 JSON."
-            ) from exc
+            raise BoundaryValidationError("Official source is not valid UTF-8 JSON.") from exc
         if not isinstance(page, dict) or page.get("type") != "FeatureCollection":
             raise BoundaryValidationError(
                 "Official source page is not a GeoJSON FeatureCollection."
             )
         page_features = page.get("features")
         if not isinstance(page_features, list):
-            raise BoundaryValidationError(
-                "Official source page has an invalid feature array."
-            )
+            raise BoundaryValidationError("Official source page has an invalid feature array.")
         features.extend(page_features)
         if len(page_features) < PAGE_SIZE:
             break
@@ -103,9 +90,7 @@ def _download_source_collection() -> dict[str, object]:
 
 def _group_fragments(document: object) -> dict[str, object]:
     if not isinstance(document, dict) or document.get("type") != "FeatureCollection":
-        raise BoundaryValidationError(
-            "Official source is not a GeoJSON FeatureCollection."
-        )
+        raise BoundaryValidationError("Official source is not a GeoJSON FeatureCollection.")
     features = document.get("features")
     if not isinstance(features, list):
         raise BoundaryValidationError("Official source has an invalid feature array.")
@@ -127,9 +112,7 @@ def _group_fragments(document: object) -> dict[str, object]:
             )
         coordinates = geometry.get("coordinates")
         if not isinstance(coordinates, list):
-            raise BoundaryValidationError(
-                f"Feature {index} has invalid coordinates."
-            )
+            raise BoundaryValidationError(f"Feature {index} has invalid coordinates.")
         geometry_type = geometry.get("type")
         if geometry_type == "Polygon":
             grouped[authority.strip()].append(coordinates)
@@ -155,10 +138,7 @@ def _group_fragments(document: object) -> dict[str, object]:
                     NORMALIZED_ID_FIELD: authority,
                     NORMALIZED_NAME_FIELD: authority,
                 },
-                "geometry": {
-                    "type": "MultiPolygon",
-                    "coordinates": grouped[authority],
-                },
+                "geometry": {"type": "MultiPolygon", "coordinates": grouped[authority]},
             }
         )
     return {"type": "FeatureCollection", "features": normalized_features}
@@ -175,15 +155,11 @@ def setup_official_geography(
         try:
             source_document = json.loads(source_bytes.decode("utf-8-sig"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise BoundaryValidationError(
-                "Official source is not valid UTF-8 JSON."
-            ) from exc
+            raise BoundaryValidationError("Official source is not valid UTF-8 JSON.") from exc
 
     normalized_document = _group_fragments(source_document)
     normalized_bytes = json.dumps(
-        normalized_document,
-        ensure_ascii=False,
-        separators=(",", ":"),
+        normalized_document, ensure_ascii=False, separators=(",", ":")
     ).encode("utf-8")
     retrieved_at = datetime.now(UTC)
     artifact = import_boundary_bytes(
@@ -220,11 +196,7 @@ def build_parser() -> argparse.ArgumentParser:
             "local-authority boundaries."
         ),
     )
-    parser.add_argument(
-        "--artifact-directory",
-        type=Path,
-        default=Path("data/geography"),
-    )
+    parser.add_argument("--artifact-directory", type=Path, default=Path("data/geography"))
     return parser
 
 
