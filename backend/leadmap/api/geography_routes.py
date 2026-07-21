@@ -15,12 +15,14 @@ from backend.leadmap.geography import (
 )
 from backend.leadmap.persistence.database import get_session
 from backend.leadmap.persistence.repositories import LeadRepository
+from backend.leadmap.services.coverage import calculate_territory_coverage
 
 from .schemas import (
     GeographyArtifactResponse,
     GeographyArtifactSummaryResponse,
     TerritoryBoundaryLinkCreate,
     TerritoryBoundaryLinkResponse,
+    TerritoryCoverageResponse,
 )
 
 router = APIRouter(prefix="/api/v1/geography", tags=["geography"])
@@ -88,6 +90,44 @@ def get_territory_boundary_links(
     return [
         TerritoryBoundaryLinkResponse.model_validate(link, from_attributes=True) for link in links
     ]
+
+
+@router.get("/coverage", response_model=list[TerritoryCoverageResponse])
+def get_geography_coverage(
+    directory: GeographicArtifactDirectoryDependency,
+    session: SessionDependency,
+) -> list[TerritoryCoverageResponse]:
+    try:
+        links = list_territory_boundary_links(directory=directory)
+    except BoundaryValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+    repository = LeadRepository(session)
+    responses: list[TerritoryCoverageResponse] = []
+    for link in links:
+        territory = repository.get_territory(link.territory_id)
+        if territory is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Territory link references a missing territory.",
+            )
+        coverage = calculate_territory_coverage(session, territory)
+        responses.append(
+            TerritoryCoverageResponse(
+                territory_id=territory.id,
+                territory_name=territory.name,
+                checksum_sha256=link.checksum_sha256,
+                boundary_external_id=link.boundary_external_id,
+                boundary_name=link.boundary_name,
+                lead_count=coverage.lead_count,
+                latest_observed_at=coverage.latest_observed_at,
+                freshness=coverage.freshness,
+            )
+        )
+    return responses
 
 
 @router.put(
