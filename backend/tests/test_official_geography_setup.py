@@ -13,7 +13,7 @@ def _source_bytes(*, include_known_fields: bool = True) -> bytes:
         properties: dict[str, object]
         if include_known_fields:
             properties = {
-                "OBJECTID": index + 1,
+                "LA_CODE": f"LA-{index + 1}",
                 "LOCAL_AUTHORITY": f"Authority {index + 1}",
             }
         else:
@@ -50,7 +50,7 @@ def test_sets_up_official_geography_and_reuses_artifact(tmp_path: Path) -> None:
     )
     assert first["created"] is True
     assert first["feature_count"] == 31
-    assert first["id_field"] == "OBJECTID"
+    assert first["id_field"] == "LA_CODE"
     assert first["name_field"] == "LOCAL_AUTHORITY"
     assert Path(str(first["artifact_path"])).is_file()
 
