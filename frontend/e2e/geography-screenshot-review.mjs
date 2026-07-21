@@ -33,7 +33,26 @@ const responses = {
   ],
   "/api/v1/query-templates?country_code=IE": [],
   "/api/v1/leads": [],
-  "/api/v1/geography/territory-links": [],
+  "/api/v1/geography/territory-links": [
+    {
+      territory_id: "territory-1",
+      checksum_sha256: checksum,
+      boundary_external_id: "galway-city",
+      boundary_name: "Galway City"
+    }
+  ],
+  "/api/v1/geography/coverage": [
+    {
+      territory_id: "territory-1",
+      territory_name: "Galway City",
+      checksum_sha256: checksum,
+      boundary_external_id: "galway-city",
+      boundary_name: "Galway City",
+      lead_count: 12,
+      latest_observed_at: "2026-07-18T12:00:00Z",
+      freshness: "fresh"
+    }
+  ],
   "/api/v1/geography/artifacts": [
     {
       schema_version: "1",
@@ -140,6 +159,7 @@ try {
 
   await page.goto("http://127.0.0.1:5173", { waitUntil: "networkidle" });
   await page.getByText("2 validated boundaries").waitFor();
+  await page.getByLabel("Coverage freshness legend").waitFor();
   await waitForStableMap(page);
   await page.screenshot({ path: "artifacts/screenshots/overview-geography.png", fullPage: true });
 
@@ -152,6 +172,7 @@ try {
   if (!mapBox) throw new Error("Geographic map did not produce a visible bounding box.");
   await page.mouse.click(mapBox.x + mapBox.width * 0.45, mapBox.y + mapBox.height * 0.5);
   await page.locator(".geography-detail").getByRole("heading", { name: "Galway City" }).waitFor();
+  await page.getByText("12 leads").waitFor();
   await page.getByRole("button", { name: "Assign boundary" }).waitFor();
   await page.waitForTimeout(250);
   await page.screenshot({
