@@ -4,7 +4,7 @@ import sys
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -51,7 +51,7 @@ def _download(url: str) -> bytes:
     request = Request(url, headers={"User-Agent": "LeadMap-Local/0.3 geography setup"})
     try:
         with urlopen(request, timeout=60) as response:
-            data = response.read()
+            data = cast(bytes, response.read())
     except (OSError, URLError) as exc:
         raise BoundaryValidationError(f"Official GeoJSON download failed: {exc}") from exc
     if not data:
@@ -70,9 +70,12 @@ def _feature_properties(document: object) -> list[Mapping[str, Any]]:
         )
     properties: list[Mapping[str, Any]] = []
     for index, feature in enumerate(features):
-        if not isinstance(feature, dict) or not isinstance(feature.get("properties"), dict):
+        if not isinstance(feature, dict):
             raise BoundaryValidationError(f"Feature {index} has invalid properties.")
-        properties.append(feature["properties"])
+        feature_properties = feature.get("properties")
+        if not isinstance(feature_properties, dict):
+            raise BoundaryValidationError(f"Feature {index} has invalid properties.")
+        properties.append(cast(Mapping[str, Any], feature_properties))
     return properties
 
 
@@ -107,7 +110,7 @@ def setup_official_geography(
 ) -> dict[str, object]:
     raw_data = source_bytes if source_bytes is not None else _download(download_url)
     try:
-        document = json.loads(raw_data.decode("utf-8"))
+        document: object = json.loads(raw_data.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise BoundaryValidationError("Official source is not valid UTF-8 JSON.") from exc
 
@@ -154,8 +157,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_setup(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    artifact_directory = cast(Path, args.artifact_directory)
     try:
-        result = setup_official_geography(artifact_directory=args.artifact_directory)
+        result = setup_official_geography(artifact_directory=artifact_directory)
     except BoundaryValidationError as exc:
         print(f"Official geography setup failed: {exc}", file=sys.stderr)
         return 1
