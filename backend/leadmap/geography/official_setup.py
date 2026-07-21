@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
