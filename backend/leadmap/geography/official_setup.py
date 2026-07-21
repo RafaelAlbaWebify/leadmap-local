@@ -94,9 +94,8 @@ def _choose_field(
         values = [item.get(key) for item in properties]
         if any(not isinstance(value, str) or not value.strip() for value in values):
             continue
-        if require_unique and len({value.strip() for value in values if isinstance(value, str)}) != len(
-            values
-        ):
+        text_values = [value.strip() for value in values if isinstance(value, str)]
+        if require_unique and len(set(text_values)) != len(values):
             continue
         return key
     raise BoundaryValidationError(
