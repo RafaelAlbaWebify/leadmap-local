@@ -50,7 +50,7 @@ def _normalise_key(value: str) -> str:
 def _download(url: str) -> bytes:
     request = Request(url, headers={"User-Agent": "LeadMap-Local/0.3 geography setup"})
     try:
-        with urlopen(request, timeout=60) as response:  # noqa: S310
+        with urlopen(request, timeout=60) as response:
             data = response.read()
     except (OSError, URLError) as exc:
         raise BoundaryValidationError(f"Official GeoJSON download failed: {exc}") from exc
@@ -144,7 +144,10 @@ def setup_official_geography(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="leadmap-setup-ireland-geography",
-        description="Download, validate, and store the official 2026 Ireland local-authority boundaries.",
+        description=(
+            "Download, validate, and store the official 2026 Ireland "
+            "local-authority boundaries."
+        ),
     )
     parser.add_argument("--artifact-directory", type=Path, default=Path("data/geography"))
     return parser
