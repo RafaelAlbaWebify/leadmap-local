@@ -118,6 +118,8 @@ AssistedSessionStateValue = Literal[
     "launching",
     "awaiting_operator",
     "ready",
+    "capturing",
+    "review",
     "stopped",
     "failed",
 ]
@@ -127,6 +129,22 @@ class AssistedSessionLaunch(DiscoveryPlanCreate):
     pass
 
 
+class VisibleCandidateResponse(BaseModel):
+    candidate_id: str
+    provider_key: str
+    displayed_name: str
+    normalized_name: str
+    category: str | None
+    address_text: str | None
+    phone: str | None
+    website: str | None
+    source_url: str | None
+    latitude: str | None
+    longitude: str | None
+    raw_evidence: str | None
+    included: bool
+
+
 class AssistedSessionResponse(BaseModel):
     session_id: str | None
     state: AssistedSessionStateValue
@@ -134,6 +152,16 @@ class AssistedSessionResponse(BaseModel):
     query_template_id: str | None
     start_url: str | None
     error: str | None
+
+
+class AssistedSessionReviewResponse(AssistedSessionResponse):
+    candidates: list[VisibleCandidateResponse]
+    included_count: int
+    excluded_count: int
+
+
+class CandidateReviewUpdate(BaseModel):
+    included: bool
 
 
 class GeographySourceResponse(BaseModel):
