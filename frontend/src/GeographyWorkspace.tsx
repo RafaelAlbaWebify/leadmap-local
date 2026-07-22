@@ -86,7 +86,8 @@ export function GeographyWorkspace() {
   const artifact = useQuery({
     queryKey: ["geography-artifact", selectedArtifact?.checksum_sha256],
     queryFn: () => fetchGeographyArtifact(selectedArtifact!.checksum_sha256),
-    enabled: Boolean(selectedArtifact)
+    enabled: Boolean(selectedArtifact),
+    staleTime: Infinity
   });
   const saveLink = useMutation({
     mutationFn: () => saveTerritoryBoundaryLink(

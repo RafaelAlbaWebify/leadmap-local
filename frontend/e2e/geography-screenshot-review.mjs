@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 
 const checksum = "a".repeat(64);
+const artifactPath = `/api/v1/geography/artifacts/${checksum}`;
 const source = {
   dataset_title: "Local Authorities - National Statutory Boundaries - Ungeneralised 2026",
   publisher: "Tailte Éireann",
@@ -62,7 +63,7 @@ const responses = {
       feature_count: 2
     }
   ],
-  [`/api/v1/geography/artifacts/${checksum}`]: {
+  [artifactPath]: {
     schema_version: "1",
     idempotency_key: "import-1",
     checksum_sha256: checksum,
@@ -133,6 +134,7 @@ try {
   const browser = await chromium.launch({ headless: true, args: chromiumArgs });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
+  let artifactRequests = 0;
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
@@ -141,6 +143,7 @@ try {
   await page.route("**/api/v1/**", async (route) => {
     const requestUrl = new URL(route.request().url());
     const path = requestUrl.pathname + requestUrl.search;
+    if (path === artifactPath) artifactRequests += 1;
     const payload = responses[path];
     if (payload === undefined) {
       await route.fulfill({
@@ -180,6 +183,9 @@ try {
     fullPage: true
   });
 
+  if (artifactRequests !== 1) {
+    throw new Error(`Expected one full geography artifact request; received ${artifactRequests}.`);
+  }
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors:\n${consoleErrors.join("\n")}`);
   }
