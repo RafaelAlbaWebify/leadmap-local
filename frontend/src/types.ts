@@ -66,6 +66,8 @@ export type AssistedSessionState =
   | "launching"
   | "awaiting_operator"
   | "ready"
+  | "capturing"
+  | "review"
   | "stopped"
   | "failed";
 
@@ -76,6 +78,28 @@ export interface AssistedSession {
   query_template_id: string | null;
   start_url: string | null;
   error: string | null;
+}
+
+export interface VisibleCandidate {
+  candidate_id: string;
+  provider_key: string;
+  displayed_name: string;
+  normalized_name: string;
+  category: string | null;
+  address_text: string | null;
+  phone: string | null;
+  website: string | null;
+  source_url: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  raw_evidence: string | null;
+  included: boolean;
+}
+
+export interface AssistedSessionReview extends AssistedSession {
+  candidates: VisibleCandidate[];
+  included_count: number;
+  excluded_count: number;
 }
 
 export interface GeographySource {

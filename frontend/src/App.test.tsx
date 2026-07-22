@@ -34,6 +34,7 @@ const source = {
 
 let territoryLinks: unknown[] = [];
 let assistedState = "idle";
+let candidateIncluded = true;
 const responses: Record<string, unknown> = {
   "/api/v1/dashboard": {
     total_businesses: 3,
@@ -104,6 +105,29 @@ function assistedSession() {
   };
 }
 
+function assistedReview() {
+  return {
+    ...assistedSession(),
+    candidates: [{
+      candidate_id: "candidate-1",
+      provider_key: "place-1",
+      displayed_name: "West Coast Accountancy",
+      normalized_name: "west coast accountancy",
+      category: "Accountant",
+      address_text: "Galway",
+      phone: "+353 91 000 001",
+      website: "https://example.com",
+      source_url: "https://maps.example/place-1",
+      latitude: null,
+      longitude: null,
+      raw_evidence: "West Coast Accountancy · Accountant · Galway",
+      included: candidateIncluded
+    }],
+    included_count: candidateIncluded ? 1 : 0,
+    excluded_count: candidateIncluded ? 0 : 1
+  };
+}
+
 vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
   if (url === "/api/v1/geography/territory-links") {
@@ -143,6 +167,14 @@ vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit
     assistedState = "ready";
     return { ok: true, json: async () => assistedSession() };
   }
+  if (url === "/api/v1/discovery/session/session-1/capture-visible" && init?.method === "POST") {
+    assistedState = "review";
+    return { ok: true, json: async () => assistedReview() };
+  }
+  if (url === "/api/v1/discovery/session/session-1/candidates/candidate-1" && init?.method === "PATCH") {
+    candidateIncluded = false;
+    return { ok: true, json: async () => assistedReview() };
+  }
   if (url === "/api/v1/discovery/session/session-1" && init?.method === "DELETE") {
     assistedState = "stopped";
     return { ok: true, json: async () => assistedSession() };
@@ -154,6 +186,7 @@ afterEach(() => {
   cleanup();
   territoryLinks = [];
   assistedState = "idle";
+  candidateIncluded = true;
   vi.clearAllMocks();
 });
 
@@ -213,17 +246,23 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Launch visible browser" })).toBeInTheDocument();
   });
 
-  it("requires explicit launch and ready actions for assisted sessions", async () => {
+  it("captures and reviews candidates only after explicit operator actions", async () => {
     renderApp();
     await previewPlan();
 
     fireEvent.click(screen.getByRole("button", { name: "Launch visible browser" }));
-    expect(await screen.findByText(/Session status:/)).toBeInTheDocument();
-    expect(screen.getByText("awaiting operator")).toBeInTheDocument();
+    expect(await screen.findByText("awaiting operator")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Browser is ready" }));
-    expect(await screen.findByText("ready")).toBeInTheDocument();
-    expect(screen.getByText(/Candidate capture remains disabled/)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Capture visible results" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Capture visible results" }));
+    expect(await screen.findByRole("region", { name: "Candidate review queue" })).toBeInTheDocument();
+    expect(screen.getByText("West Coast Accountancy")).toBeInTheDocument();
+    expect(screen.getByText(/1 included · 0 excluded/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Include" }));
+    expect(await screen.findByText(/0 included · 1 excluded/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Stop assisted session" }));
     expect(await screen.findByText("stopped")).toBeInTheDocument();
