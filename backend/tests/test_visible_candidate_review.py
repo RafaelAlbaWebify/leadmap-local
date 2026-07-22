@@ -68,7 +68,12 @@ def test_normalizes_deduplicates_and_caps_visible_candidates() -> None:
                 phone="+353 91 000 001",
                 website="https://example.com",
             ),
-            candidate("two", "provider-3", "Harbour Legal", address=" Dublin  2 "),
+            candidate(
+                "two",
+                "provider-3",
+                "Harbour Legal",
+                address=" Dublin  2 ",
+            ),
             candidate("three", "provider-4", "Third candidate"),
         ],
         max_results=2,
@@ -89,7 +94,10 @@ def test_capture_requires_ready_and_enters_review() -> None:
         ]
     )
     manager = AssistedSessionManager(provider)
-    session = manager.launch(territory_id="territory-1", query_template_id="template-1")
+    session = manager.launch(
+        territory_id="territory-1",
+        query_template_id="template-1",
+    )
 
     with pytest.raises(AssistedSessionTransitionError, match="marks the browser ready"):
         manager.capture_visible(session.session_id or "", max_results=20)
@@ -115,7 +123,10 @@ def test_failed_capture_returns_to_ready_without_partial_candidates() -> None:
             raise RuntimeError("selector drift")
 
     manager = AssistedSessionManager(FailingProvider([]))
-    session = manager.launch(territory_id="territory-1", query_template_id="template-1")
+    session = manager.launch(
+        territory_id="territory-1",
+        query_template_id="template-1",
+    )
     manager.mark_ready(session.session_id or "")
 
     with pytest.raises(RuntimeError, match="selector drift"):
