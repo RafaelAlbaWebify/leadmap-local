@@ -61,6 +61,23 @@ export interface DiscoveryPlan {
   mode: "assisted";
 }
 
+export type AssistedSessionState =
+  | "idle"
+  | "launching"
+  | "awaiting_operator"
+  | "ready"
+  | "stopped"
+  | "failed";
+
+export interface AssistedSession {
+  session_id: string | null;
+  state: AssistedSessionState;
+  territory_id: string | null;
+  query_template_id: string | null;
+  start_url: string | null;
+  error: string | null;
+}
+
 export interface GeographySource {
   dataset_title: string;
   publisher: string;

@@ -33,6 +33,7 @@ const source = {
 };
 
 let territoryLinks: unknown[] = [];
+let assistedState = "idle";
 const responses: Record<string, unknown> = {
   "/api/v1/dashboard": {
     total_businesses: 3,
@@ -92,6 +93,17 @@ const responses: Record<string, unknown> = {
   }
 };
 
+function assistedSession() {
+  return {
+    session_id: assistedState === "idle" ? null : "session-1",
+    state: assistedState,
+    territory_id: assistedState === "idle" ? null : "territory-1",
+    query_template_id: assistedState === "idle" ? null : "template-1",
+    start_url: assistedState === "idle" ? null : "https://www.google.com/maps/search/accountant",
+    error: null
+  };
+}
+
 vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
   if (url === "/api/v1/geography/territory-links") {
@@ -123,18 +135,43 @@ vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit
       })
     };
   }
+  if (url === "/api/v1/discovery/session" && init?.method === "POST") {
+    assistedState = "awaiting_operator";
+    return { ok: true, json: async () => assistedSession() };
+  }
+  if (url === "/api/v1/discovery/session/session-1/ready" && init?.method === "POST") {
+    assistedState = "ready";
+    return { ok: true, json: async () => assistedSession() };
+  }
+  if (url === "/api/v1/discovery/session/session-1" && init?.method === "DELETE") {
+    assistedState = "stopped";
+    return { ok: true, json: async () => assistedSession() };
+  }
   return { ok: true, json: async () => responses[url] };
 }));
 
 afterEach(() => {
   cleanup();
   territoryLinks = [];
+  assistedState = "idle";
   vi.clearAllMocks();
 });
 
 function renderApp() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={client}><App /></QueryClientProvider>);
+}
+
+async function previewPlan() {
+  fireEvent.click(screen.getByRole("button", { name: /^Discovery/i }));
+  await screen.findByRole("option", { name: "Galway City" });
+  await screen.findByRole("option", { name: "Accountancy" });
+  fireEvent.change(screen.getByLabelText("Territory"), { target: { value: "territory-1" } });
+  fireEvent.change(screen.getByLabelText("Query group"), { target: { value: "template-1" } });
+  const previewButton = screen.getByRole("button", { name: "Preview search plan" });
+  await waitFor(() => expect(previewButton).not.toBeDisabled());
+  fireEvent.click(previewButton);
+  await screen.findByText(/Accountancy in Galway City/);
 }
 
 describe("App", () => {
@@ -172,14 +209,23 @@ describe("App", () => {
 
   it("previews an assisted discovery plan", async () => {
     renderApp();
-    fireEvent.click(screen.getByRole("button", { name: /^Discovery/i }));
-    await screen.findByRole("option", { name: "Galway City" });
-    await screen.findByRole("option", { name: "Accountancy" });
-    fireEvent.change(screen.getByLabelText("Territory"), { target: { value: "territory-1" } });
-    fireEvent.change(screen.getByLabelText("Query group"), { target: { value: "template-1" } });
-    const previewButton = screen.getByRole("button", { name: "Preview search plan" });
-    await waitFor(() => expect(previewButton).not.toBeDisabled());
-    fireEvent.click(previewButton);
-    await waitFor(() => expect(screen.getByText(/Accountancy in Galway City/)).toBeInTheDocument());
+    await previewPlan();
+    expect(screen.getByRole("button", { name: "Launch visible browser" })).toBeInTheDocument();
+  });
+
+  it("requires explicit launch and ready actions for assisted sessions", async () => {
+    renderApp();
+    await previewPlan();
+
+    fireEvent.click(screen.getByRole("button", { name: "Launch visible browser" }));
+    expect(await screen.findByText(/Session status:/)).toBeInTheDocument();
+    expect(screen.getByText("awaiting operator")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Browser is ready" }));
+    expect(await screen.findByText("ready")).toBeInTheDocument();
+    expect(screen.getByText(/Candidate capture remains disabled/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop assisted session" }));
+    expect(await screen.findByText("stopped")).toBeInTheDocument();
   });
 });

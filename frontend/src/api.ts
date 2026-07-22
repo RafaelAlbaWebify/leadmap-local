@@ -1,4 +1,5 @@
 import type {
+  AssistedSession,
   DashboardSummary,
   DiscoveryPlan,
   GeographyArtifact,
@@ -84,4 +85,27 @@ export function createDiscoveryPlan(
       max_results_per_query: 20
     })
   });
+}
+
+export function launchAssistedSession(
+  territoryId: string,
+  queryTemplateId: string
+): Promise<AssistedSession> {
+  return requestJson("/api/v1/discovery/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      territory_id: territoryId,
+      query_template_id: queryTemplateId,
+      max_results_per_query: 20
+    })
+  });
+}
+
+export function markAssistedSessionReady(sessionId: string): Promise<AssistedSession> {
+  return requestJson(`/api/v1/discovery/session/${sessionId}/ready`, { method: "POST" });
+}
+
+export function stopAssistedSession(sessionId: string): Promise<AssistedSession> {
+  return requestJson(`/api/v1/discovery/session/${sessionId}`, { method: "DELETE" });
 }

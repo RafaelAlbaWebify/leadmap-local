@@ -17,10 +17,13 @@ import {
   fetchLeads,
   fetchQueryTemplates,
   fetchTerritories,
-  seedIreland
+  launchAssistedSession,
+  markAssistedSessionReady,
+  seedIreland,
+  stopAssistedSession
 } from "./api";
 import { GeographyWorkspace } from "./GeographyWorkspace";
-import type { Lead } from "./types";
+import type { AssistedSession, Lead } from "./types";
 
 type View = "Overview" | "Territories" | "Discovery" | "Leads" | "Exports";
 
@@ -72,6 +75,7 @@ export function App() {
   const [view, setView] = useState<View>("Overview");
   const [territoryId, setTerritoryId] = useState("");
   const [templateId, setTemplateId] = useState("");
+  const [assistedSession, setAssistedSession] = useState<AssistedSession | null>(null);
   const queryClient = useQueryClient();
   const dashboard = useQuery({ queryKey: ["dashboard"], queryFn: fetchDashboard });
   const territories = useQuery({ queryKey: ["territories"], queryFn: fetchTerritories });
@@ -88,7 +92,22 @@ export function App() {
       ]);
     }
   });
-  const plan = useMutation({ mutationFn: () => createDiscoveryPlan(territoryId, templateId) });
+  const plan = useMutation({
+    mutationFn: () => createDiscoveryPlan(territoryId, templateId),
+    onSuccess: () => setAssistedSession(null)
+  });
+  const launchSession = useMutation({
+    mutationFn: () => launchAssistedSession(territoryId, templateId),
+    onSuccess: setAssistedSession
+  });
+  const readySession = useMutation({
+    mutationFn: (sessionId: string) => markAssistedSessionReady(sessionId),
+    onSuccess: setAssistedSession
+  });
+  const stopSession = useMutation({
+    mutationFn: (sessionId: string) => stopAssistedSession(sessionId),
+    onSuccess: setAssistedSession
+  });
   const groupedTemplates = new Map<string, NonNullable<typeof templates.data>>();
   for (const item of templates.data ?? []) groupedTemplates.set(item.sector, [...(groupedTemplates.get(item.sector) ?? []), item]);
 
@@ -99,6 +118,8 @@ export function App() {
     Leads: "Review persisted business observations and freshness metadata.",
     Exports: "Download stable CSV or JSON records for CRM and related applications."
   }[view];
+
+  const sessionActive = assistedSession?.state === "awaiting_operator" || assistedSession?.state === "ready";
 
   return (
     <div className="shell">
@@ -162,15 +183,28 @@ export function App() {
         {view === "Discovery" && (
           <section className="discovery-layout">
             <article className="panel page-panel">
-              <div className="panel-heading"><div><h2>Prepare assisted session</h2><p>No browser opens until you approve a later capture step.</p></div></div>
-              <label>Territory<select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)}><option value="">Select territory</option>{(territories.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label>Query group<select value={templateId} onChange={(event) => setTemplateId(event.target.value)}><option value="">Select query group</option>{Array.from(groupedTemplates.entries()).map(([sector, items]) => <optgroup key={sector} label={sector}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</select></label>
-              <button className="primary-action" disabled={!territoryId || !templateId || plan.isPending} onClick={() => plan.mutate()}>Preview search plan</button>
+              <div className="panel-heading"><div><h2>Prepare assisted session</h2><p>The visible browser opens only after explicit approval.</p></div></div>
+              <label>Territory<select value={territoryId} disabled={sessionActive} onChange={(event) => setTerritoryId(event.target.value)}><option value="">Select territory</option>{(territories.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+              <label>Query group<select value={templateId} disabled={sessionActive} onChange={(event) => setTemplateId(event.target.value)}><option value="">Select query group</option>{Array.from(groupedTemplates.entries()).map(([sector, items]) => <optgroup key={sector} label={sector}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</select></label>
+              <button className="primary-action" disabled={!territoryId || !templateId || plan.isPending || sessionActive} onClick={() => plan.mutate()}>Preview search plan</button>
             </article>
             <article className="panel page-panel">
               <div className="panel-heading"><div><h2>Plan preview</h2><p>Bounded and user-controlled</p></div></div>
               {!plan.data && <div className="empty-state">Select a territory and query group.</div>}
-              {plan.data && <><h3>{plan.data.query_template_name} in {plan.data.territory_name}</h3><p className="body-copy">{plan.data.total_planned_queries} prepared queries · maximum {plan.data.max_results_per_query} visible results each</p><div className="query-chips">{plan.data.phrases.map((phrase) => <span key={phrase}>{phrase}</span>)}</div><div className="notice">Browser capture remains disabled until the Playwright session state machine is implemented and fixture-tested.</div></>}
+              {plan.data && <>
+                <h3>{plan.data.query_template_name} in {plan.data.territory_name}</h3>
+                <p className="body-copy">{plan.data.total_planned_queries} prepared queries · maximum {plan.data.max_results_per_query} visible results each</p>
+                <div className="query-chips">{plan.data.phrases.map((phrase) => <span key={phrase}>{phrase}</span>)}</div>
+                {!assistedSession && <button className="primary-action full" disabled={launchSession.isPending} onClick={() => launchSession.mutate()}>{launchSession.isPending ? "Launching visible browser…" : "Launch visible browser"}</button>}
+                {assistedSession && <div className="notice">
+                  Session status: <strong>{assistedSession.state.replace("_", " ")}</strong>
+                  {assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the search, then confirm readiness here.</p>}
+                </div>}
+                {assistedSession?.state === "awaiting_operator" && assistedSession.session_id && <button className="primary-action full" disabled={readySession.isPending} onClick={() => readySession.mutate(assistedSession.session_id!)}>Browser is ready</button>}
+                {sessionActive && assistedSession?.session_id && <button className="secondary-action full" disabled={stopSession.isPending} onClick={() => stopSession.mutate(assistedSession.session_id!)}>Stop assisted session</button>}
+                {assistedSession?.state === "ready" && <div className="notice">The browser is ready. Candidate capture remains disabled until the bounded visible-results adapter is implemented.</div>}
+                {(launchSession.isError || readySession.isError || stopSession.isError) && <div className="notice error">The assisted session action failed. Review the backend message and retry.</div>}
+              </>}
             </article>
           </section>
         )}
