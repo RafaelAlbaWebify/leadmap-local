@@ -6,6 +6,9 @@ from .sessions import (
     AssistedSessionState,
     AssistedSessionTransitionError,
     SubprocessPlaywrightProvider,
+    VisibleCandidate,
+    VisibleCaptureUnsupported,
+    normalize_and_deduplicate_candidates,
 )
 
 __all__ = [
@@ -16,4 +19,7 @@ __all__ = [
     "AssistedSessionState",
     "AssistedSessionTransitionError",
     "SubprocessPlaywrightProvider",
+    "VisibleCandidate",
+    "VisibleCaptureUnsupported",
+    "normalize_and_deduplicate_candidates",
 ]
