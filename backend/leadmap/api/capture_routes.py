@@ -26,8 +26,7 @@ ManagerDependency = Annotated[
 
 def _review_response(session: AssistedSession) -> AssistedSessionReviewResponse:
     candidates = [
-        VisibleCandidateResponse.model_validate(candidate)
-        for candidate in session.candidates
+        VisibleCandidateResponse.model_validate(candidate) for candidate in session.candidates
     ]
     included_count = sum(candidate.included for candidate in session.candidates)
     return AssistedSessionReviewResponse(
