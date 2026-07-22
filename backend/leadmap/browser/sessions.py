@@ -103,7 +103,15 @@ def _normalize_url(value: str | None) -> str | None:
     if not parsed.netloc:
         return cleaned
     path = parsed.path.rstrip("/") or ""
-    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), path, parsed.query, ""))
+    return urlunsplit(
+        (
+            parsed.scheme.lower(),
+            parsed.netloc.lower(),
+            path,
+            parsed.query,
+            "",
+        )
+    )
 
 
 def normalize_and_deduplicate_candidates(
@@ -166,7 +174,9 @@ class SubprocessPlaywrightProvider:
 
     def launch(self, *, start_url: str) -> None:
         if self._process is not None and self._process.poll() is None:
-            raise AssistedSessionConflict("A visible browser process is already active.")
+            raise AssistedSessionConflict(
+                "A visible browser process is already active."
+            )
         self._profile_directory.mkdir(parents=True, exist_ok=True)
         self._process = subprocess.Popen(
             [
@@ -207,7 +217,10 @@ class SubprocessPlaywrightProvider:
 class AssistedSessionManager:
     def __init__(self, provider: AssistedBrowserProvider) -> None:
         self._provider = provider
-        self._session = AssistedSession(session_id=None, state=AssistedSessionState.IDLE)
+        self._session = AssistedSession(
+            session_id=None,
+            state=AssistedSessionState.IDLE,
+        )
 
     def snapshot(self) -> AssistedSession:
         return self._session
@@ -220,7 +233,9 @@ class AssistedSessionManager:
         start_url: str = "about:blank",
     ) -> AssistedSession:
         if self._session.state in ACTIVE_STATES:
-            raise AssistedSessionConflict("An assisted browser session is already active.")
+            raise AssistedSessionConflict(
+                "An assisted browser session is already active."
+            )
 
         session = AssistedSession(
             session_id=str(uuid4()),
@@ -233,10 +248,17 @@ class AssistedSessionManager:
         try:
             self._provider.launch(start_url=start_url)
         except Exception as exc:
-            self._session = replace(session, state=AssistedSessionState.FAILED, error=str(exc))
+            self._session = replace(
+                session,
+                state=AssistedSessionState.FAILED,
+                error=str(exc),
+            )
             raise
 
-        self._session = replace(session, state=AssistedSessionState.AWAITING_OPERATOR)
+        self._session = replace(
+            session,
+            state=AssistedSessionState.AWAITING_OPERATOR,
+        )
         return self._session
 
     def mark_ready(self, session_id: str) -> AssistedSession:
@@ -245,16 +267,29 @@ class AssistedSessionManager:
             raise AssistedSessionTransitionError(
                 "The session can be marked ready only while awaiting the operator."
             )
-        self._session = replace(self._session, state=AssistedSessionState.READY)
+        self._session = replace(
+            self._session,
+            state=AssistedSessionState.READY,
+        )
         return self._session
 
-    def capture_visible(self, session_id: str, *, max_results: int) -> AssistedSession:
+    def capture_visible(
+        self,
+        session_id: str,
+        *,
+        max_results: int,
+    ) -> AssistedSession:
         self._require_current(session_id)
         if self._session.state is not AssistedSessionState.READY:
             raise AssistedSessionTransitionError(
-                "Visible results can be captured only after the operator marks the browser ready."
+                "Visible results can be captured only after the operator marks "
+                "the browser ready."
             )
-        self._session = replace(self._session, state=AssistedSessionState.CAPTURING, error=None)
+        self._session = replace(
+            self._session,
+            state=AssistedSessionState.CAPTURING,
+            error=None,
+        )
         try:
             captured = self._provider.capture_visible(max_results=max_results)
             candidates = normalize_and_deduplicate_candidates(
@@ -285,7 +320,9 @@ class AssistedSessionManager:
     ) -> AssistedSession:
         self._require_current(session_id)
         if self._session.state is not AssistedSessionState.REVIEW:
-            raise AssistedSessionTransitionError("Candidates can be edited only during review.")
+            raise AssistedSessionTransitionError(
+                "Candidates can be edited only during review."
+            )
         found = False
         updated: list[VisibleCandidate] = []
         for candidate in self._session.candidates:
@@ -296,7 +333,10 @@ class AssistedSessionManager:
                 updated.append(candidate)
         if not found:
             raise AssistedSessionTransitionError("The candidate does not exist.")
-        self._session = replace(self._session, candidates=tuple(updated))
+        self._session = replace(
+            self._session,
+            candidates=tuple(updated),
+        )
         return self._session
 
     def stop(self, session_id: str | None = None) -> AssistedSession:
@@ -304,13 +344,21 @@ class AssistedSessionManager:
             return self._session
         if session_id is not None:
             self._require_current(session_id)
-        if self._session.state in {AssistedSessionState.STOPPED, AssistedSessionState.FAILED}:
+        if self._session.state in {
+            AssistedSessionState.STOPPED,
+            AssistedSessionState.FAILED,
+        }:
             return self._session
 
         self._provider.stop()
-        self._session = replace(self._session, state=AssistedSessionState.STOPPED)
+        self._session = replace(
+            self._session,
+            state=AssistedSessionState.STOPPED,
+        )
         return self._session
 
     def _require_current(self, session_id: str) -> None:
         if self._session.session_id != session_id:
-            raise AssistedSessionTransitionError("The assisted browser session does not exist.")
+            raise AssistedSessionTransitionError(
+                "The assisted browser session does not exist."
+            )
