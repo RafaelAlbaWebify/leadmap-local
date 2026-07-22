@@ -103,7 +103,10 @@ def _lead_responses(repository: LeadRepository, limit: int) -> list[LeadResponse
     return [LeadResponse.model_validate(item) for item in repository.recent_leads(limit=limit)]
 
 
-def _discovery_plan(payload: DiscoveryPlanCreate, repository: LeadRepository) -> DiscoveryPlanResponse:
+def _discovery_plan(
+    payload: DiscoveryPlanCreate,
+    repository: LeadRepository,
+) -> DiscoveryPlanResponse:
     settings = get_settings()
     if payload.max_results_per_query > settings.max_capture_results:
         raise HTTPException(
@@ -113,7 +116,10 @@ def _discovery_plan(payload: DiscoveryPlanCreate, repository: LeadRepository) ->
 
     territory = repository.get_territory(payload.territory_id)
     if territory is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Territory not found.",
+        )
 
     template = repository.get_query_template(payload.query_template_id)
     if template is None:
