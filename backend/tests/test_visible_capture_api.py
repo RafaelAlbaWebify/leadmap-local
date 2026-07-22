@@ -70,9 +70,7 @@ def _launch_and_ready(client: TestClient) -> str:
 def test_capture_visible_results_and_edit_review(capture_client: TestClient) -> None:
     session_id = _launch_and_ready(capture_client)
 
-    captured = capture_client.post(
-        f"/api/v1/discovery/session/{session_id}/capture-visible"
-    )
+    captured = capture_client.post(f"/api/v1/discovery/session/{session_id}/capture-visible")
 
     assert captured.status_code == 200
     payload = captured.json()
@@ -95,9 +93,7 @@ def test_capture_visible_results_and_edit_review(capture_client: TestClient) -> 
 def test_capture_before_ready_fails_closed(capture_client: TestClient) -> None:
     assert capture_client.post("/api/v1/seed/ireland").status_code == 200
     territory = capture_client.get("/api/v1/territories").json()[0]
-    template = capture_client.get(
-        "/api/v1/query-templates?country_code=IE"
-    ).json()[0]
+    template = capture_client.get("/api/v1/query-templates?country_code=IE").json()[0]
     launched = capture_client.post(
         "/api/v1/discovery/session",
         json={
@@ -107,7 +103,5 @@ def test_capture_before_ready_fails_closed(capture_client: TestClient) -> None:
     )
 
     session_id = launched.json()["session_id"]
-    response = capture_client.post(
-        f"/api/v1/discovery/session/{session_id}/capture-visible"
-    )
+    response = capture_client.post(f"/api/v1/discovery/session/{session_id}/capture-visible")
     assert response.status_code == 409
