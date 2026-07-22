@@ -1,5 +1,6 @@
 import type {
   AssistedSession,
+  AssistedSessionReview,
   DashboardSummary,
   DiscoveryPlan,
   GeographyArtifact,
@@ -104,6 +105,24 @@ export function launchAssistedSession(
 
 export function markAssistedSessionReady(sessionId: string): Promise<AssistedSession> {
   return requestJson(`/api/v1/discovery/session/${sessionId}/ready`, { method: "POST" });
+}
+
+export function captureVisibleCandidates(sessionId: string): Promise<AssistedSessionReview> {
+  return requestJson(`/api/v1/discovery/session/${sessionId}/capture-visible`, {
+    method: "POST"
+  });
+}
+
+export function updateCandidateReview(
+  sessionId: string,
+  candidateId: string,
+  included: boolean
+): Promise<AssistedSessionReview> {
+  return requestJson(`/api/v1/discovery/session/${sessionId}/candidates/${candidateId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ included })
+  });
 }
 
 export function stopAssistedSession(sessionId: string): Promise<AssistedSession> {
