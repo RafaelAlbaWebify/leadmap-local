@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
+from .api.capture_routes import router as capture_router
 from .api.geography_routes import router as geography_router
 from .api.routes import router
 from .config import get_settings
@@ -21,4 +22,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+app.include_router(capture_router)
 app.include_router(geography_router)
