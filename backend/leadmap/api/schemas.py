@@ -113,6 +113,29 @@ class DiscoveryPlanResponse(BaseModel):
     mode: str = "assisted"
 
 
+AssistedSessionStateValue = Literal[
+    "idle",
+    "launching",
+    "awaiting_operator",
+    "ready",
+    "stopped",
+    "failed",
+]
+
+
+class AssistedSessionLaunch(DiscoveryPlanCreate):
+    pass
+
+
+class AssistedSessionResponse(BaseModel):
+    session_id: str | None
+    state: AssistedSessionStateValue
+    territory_id: str | None
+    query_template_id: str | None
+    start_url: str | None
+    error: str | None
+
+
 class GeographySourceResponse(BaseModel):
     dataset_title: str
     publisher: str
