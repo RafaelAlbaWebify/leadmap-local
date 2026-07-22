@@ -62,7 +62,8 @@ def _launch_and_ready(client: TestClient) -> str:
         },
     )
     session_id = launched.json()["session_id"]
-    assert client.post(f"/api/v1/discovery/session/{session_id}/ready").status_code == 200
+    ready = client.post(f"/api/v1/discovery/session/{session_id}/ready")
+    assert ready.status_code == 200
     return session_id
 
 
@@ -94,7 +95,9 @@ def test_capture_visible_results_and_edit_review(capture_client: TestClient) -> 
 def test_capture_before_ready_fails_closed(capture_client: TestClient) -> None:
     assert capture_client.post("/api/v1/seed/ireland").status_code == 200
     territory = capture_client.get("/api/v1/territories").json()[0]
-    template = capture_client.get("/api/v1/query-templates?country_code=IE").json()[0]
+    template = capture_client.get(
+        "/api/v1/query-templates?country_code=IE"
+    ).json()[0]
     launched = capture_client.post(
         "/api/v1/discovery/session",
         json={
@@ -103,7 +106,8 @@ def test_capture_before_ready_fails_closed(capture_client: TestClient) -> None:
         },
     )
 
+    session_id = launched.json()["session_id"]
     response = capture_client.post(
-        f"/api/v1/discovery/session/{launched.json()['session_id']}/capture-visible"
+        f"/api/v1/discovery/session/{session_id}/capture-visible"
     )
     assert response.status_code == 409
