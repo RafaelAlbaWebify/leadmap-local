@@ -130,6 +130,8 @@ class AssistedSessionLaunch(DiscoveryPlanCreate):
 
 
 class VisibleCandidateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     candidate_id: str
     provider_key: str
     displayed_name: str
