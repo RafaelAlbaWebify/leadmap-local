@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from .api.geography_routes import router as geography_router
 from .api.routes import router
@@ -11,6 +12,7 @@ app = FastAPI(
     version="0.3.0",
     description="Local-first territory intelligence and lead research workbench.",
 )
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

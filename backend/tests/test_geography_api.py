@@ -47,6 +47,24 @@ def test_returns_validated_artifact_contract(client: TestClient, tmp_path: Path)
     assert payload["boundaries"][0]["geometry_type"] in {"Polygon", "MultiPolygon"}
 
 
+def test_compresses_geography_artifact_for_gzip_clients(
+    client: TestClient,
+    tmp_path: Path,
+) -> None:
+    checksum = _stored_checksum(tmp_path)
+    app.dependency_overrides[get_geographic_artifact_directory] = lambda: tmp_path
+
+    response = client.get(
+        f"/api/v1/geography/artifacts/{checksum}",
+        headers={"Accept-Encoding": "gzip"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-encoding"] == "gzip"
+    assert "Accept-Encoding" in response.headers["vary"]
+    assert response.json()["checksum_sha256"] == checksum
+
+
 def test_returns_not_found_for_missing_artifact(client: TestClient, tmp_path: Path) -> None:
     app.dependency_overrides[get_geographic_artifact_directory] = lambda: tmp_path
 
