@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  captureVisibleCandidates,
   createDiscoveryPlan,
   fetchDashboard,
   fetchLeads,
@@ -20,10 +21,12 @@ import {
   launchAssistedSession,
   markAssistedSessionReady,
   seedIreland,
-  stopAssistedSession
+  stopAssistedSession,
+  updateCandidateReview
 } from "./api";
+import { CandidateReview } from "./CandidateReview";
 import { GeographyWorkspace } from "./GeographyWorkspace";
-import type { AssistedSession, Lead } from "./types";
+import type { AssistedSession, AssistedSessionReview, Lead } from "./types";
 
 type View = "Overview" | "Territories" | "Discovery" | "Leads" | "Exports";
 
@@ -76,6 +79,8 @@ export function App() {
   const [territoryId, setTerritoryId] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [assistedSession, setAssistedSession] = useState<AssistedSession | null>(null);
+  const [review, setReview] = useState<AssistedSessionReview | null>(null);
+  const [busyCandidateId, setBusyCandidateId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const dashboard = useQuery({ queryKey: ["dashboard"], queryFn: fetchDashboard });
   const territories = useQuery({ queryKey: ["territories"], queryFn: fetchTerritories });
@@ -94,7 +99,10 @@ export function App() {
   });
   const plan = useMutation({
     mutationFn: () => createDiscoveryPlan(territoryId, templateId),
-    onSuccess: () => setAssistedSession(null)
+    onSuccess: () => {
+      setAssistedSession(null);
+      setReview(null);
+    }
   });
   const launchSession = useMutation({
     mutationFn: () => launchAssistedSession(territoryId, templateId),
@@ -103,6 +111,23 @@ export function App() {
   const readySession = useMutation({
     mutationFn: (sessionId: string) => markAssistedSessionReady(sessionId),
     onSuccess: setAssistedSession
+  });
+  const captureSession = useMutation({
+    mutationFn: (sessionId: string) => captureVisibleCandidates(sessionId),
+    onSuccess: (result) => {
+      setAssistedSession(result);
+      setReview(result);
+    }
+  });
+  const candidateReview = useMutation({
+    mutationFn: ({ sessionId, candidateId, included }: { sessionId: string; candidateId: string; included: boolean }) =>
+      updateCandidateReview(sessionId, candidateId, included),
+    onMutate: ({ candidateId }) => setBusyCandidateId(candidateId),
+    onSuccess: (result) => {
+      setAssistedSession(result);
+      setReview(result);
+    },
+    onSettled: () => setBusyCandidateId(null)
   });
   const stopSession = useMutation({
     mutationFn: (sessionId: string) => stopAssistedSession(sessionId),
@@ -119,7 +144,7 @@ export function App() {
     Exports: "Download stable CSV or JSON records for CRM and related applications."
   }[view];
 
-  const sessionActive = assistedSession?.state === "awaiting_operator" || assistedSession?.state === "ready";
+  const sessionActive = assistedSession !== null && ["awaiting_operator", "ready", "capturing", "review"].includes(assistedSession.state);
 
   return (
     <div className="shell">
@@ -201,9 +226,10 @@ export function App() {
                   {assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the search, then confirm readiness here.</p>}
                 </div>}
                 {assistedSession?.state === "awaiting_operator" && assistedSession.session_id && <button className="primary-action full" disabled={readySession.isPending} onClick={() => readySession.mutate(assistedSession.session_id!)}>Browser is ready</button>}
+                {assistedSession?.state === "ready" && assistedSession.session_id && <button className="primary-action full" disabled={captureSession.isPending} onClick={() => captureSession.mutate(assistedSession.session_id!)}>{captureSession.isPending ? "Capturing visible results…" : "Capture visible results"}</button>}
                 {sessionActive && assistedSession?.session_id && <button className="secondary-action full" disabled={stopSession.isPending} onClick={() => stopSession.mutate(assistedSession.session_id!)}>Stop assisted session</button>}
-                {assistedSession?.state === "ready" && <div className="notice">The browser is ready. Candidate capture remains disabled until the bounded visible-results adapter is implemented.</div>}
-                {(launchSession.isError || readySession.isError || stopSession.isError) && <div className="notice error">The assisted session action failed. Review the backend message and retry.</div>}
+                {review && assistedSession?.state === "review" && assistedSession.session_id && <CandidateReview review={review} busyCandidateId={busyCandidateId} onToggle={(candidateId, included) => candidateReview.mutate({ sessionId: assistedSession.session_id!, candidateId, included })} />}
+                {(launchSession.isError || readySession.isError || captureSession.isError || candidateReview.isError || stopSession.isError) && <div className="notice error">The assisted session action failed. Review the backend message and retry.</div>}
               </>}
             </article>
           </section>
