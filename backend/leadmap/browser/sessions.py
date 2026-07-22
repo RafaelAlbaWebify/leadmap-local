@@ -174,9 +174,7 @@ class SubprocessPlaywrightProvider:
 
     def launch(self, *, start_url: str) -> None:
         if self._process is not None and self._process.poll() is None:
-            raise AssistedSessionConflict(
-                "A visible browser process is already active."
-            )
+            raise AssistedSessionConflict("A visible browser process is already active.")
         self._profile_directory.mkdir(parents=True, exist_ok=True)
         self._process = subprocess.Popen(
             [
@@ -233,9 +231,7 @@ class AssistedSessionManager:
         start_url: str = "about:blank",
     ) -> AssistedSession:
         if self._session.state in ACTIVE_STATES:
-            raise AssistedSessionConflict(
-                "An assisted browser session is already active."
-            )
+            raise AssistedSessionConflict("An assisted browser session is already active.")
 
         session = AssistedSession(
             session_id=str(uuid4()),
@@ -282,8 +278,7 @@ class AssistedSessionManager:
         self._require_current(session_id)
         if self._session.state is not AssistedSessionState.READY:
             raise AssistedSessionTransitionError(
-                "Visible results can be captured only after the operator marks "
-                "the browser ready."
+                "Visible results can be captured only after the operator marks the browser ready."
             )
         self._session = replace(
             self._session,
@@ -320,9 +315,7 @@ class AssistedSessionManager:
     ) -> AssistedSession:
         self._require_current(session_id)
         if self._session.state is not AssistedSessionState.REVIEW:
-            raise AssistedSessionTransitionError(
-                "Candidates can be edited only during review."
-            )
+            raise AssistedSessionTransitionError("Candidates can be edited only during review.")
         found = False
         updated: list[VisibleCandidate] = []
         for candidate in self._session.candidates:
@@ -359,6 +352,4 @@ class AssistedSessionManager:
 
     def _require_current(self, session_id: str) -> None:
         if self._session.session_id != session_id:
-            raise AssistedSessionTransitionError(
-                "The assisted browser session does not exist."
-            )
+            raise AssistedSessionTransitionError("The assisted browser session does not exist.")
