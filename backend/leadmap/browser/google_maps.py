@@ -59,11 +59,7 @@ def capture_visible_google_maps_cards(
             if "/maps/place/" in href and source_url is None:
                 source_url = href
                 provider_key = href
-            elif (
-                href.startswith("http")
-                and "google." not in href
-                and website is None
-            ):
+            elif href.startswith("http") and "google." not in href and website is None:
                 website = href
 
         lines = [line.strip() for line in text.splitlines() if line.strip()]
