@@ -19,7 +19,10 @@ def test_extracts_coordinates_from_google_maps_url() -> None:
 
 def test_coordinates_are_optional() -> None:
     assert _coordinates_from_url(None) == (None, None)
-    assert _coordinates_from_url("https://www.google.com/maps/place/Test") == (None, None)
+    assert _coordinates_from_url("https://www.google.com/maps/place/Test") == (
+        None,
+        None,
+    )
 
 
 def test_rejects_unsupported_page_without_dom_access() -> None:
