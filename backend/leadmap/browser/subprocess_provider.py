@@ -16,7 +16,11 @@ from .protocol import (
     encode_request,
     write_message,
 )
-from .sessions import AssistedSessionConflict, VisibleCandidate, VisibleCaptureUnsupported
+from .sessions import (
+    AssistedSessionConflict,
+    VisibleCandidate,
+    VisibleCaptureUnsupported,
+)
 
 
 class SubprocessPlaywrightProvider:
@@ -58,7 +62,8 @@ class SubprocessPlaywrightProvider:
         process = self._require_running_process()
         if process.stdin is None or process.stdout is None:
             raise VisibleCaptureUnsupported(
-                "The visible browser communication channel is unavailable. Stop and relaunch the session."
+                "The visible browser communication channel is unavailable. "
+                "Stop and relaunch the session."
             )
         request_id = str(uuid4())
         write_message(
@@ -81,15 +86,21 @@ class SubprocessPlaywrightProvider:
         if not isinstance(raw_candidates, list):
             raise BrowserProtocolError("Browser protocol candidates must be a list.")
         if len(raw_candidates) > max_results:
-            raise BrowserProtocolError("Browser process returned more candidates than requested.")
+            raise BrowserProtocolError(
+                "Browser process returned more candidates than requested."
+            )
         allowed = {field.name for field in fields(VisibleCandidate)}
         candidates: list[VisibleCandidate] = []
         for raw_candidate in raw_candidates:
             if not isinstance(raw_candidate, dict):
-                raise BrowserProtocolError("Browser protocol candidate must be an object.")
+                raise BrowserProtocolError(
+                    "Browser protocol candidate must be an object."
+                )
             unknown = set(raw_candidate) - allowed
             if unknown:
-                raise BrowserProtocolError("Browser protocol candidate contains unknown fields.")
+                raise BrowserProtocolError(
+                    "Browser protocol candidate contains unknown fields."
+                )
             candidates.append(VisibleCandidate(**_candidate_values(raw_candidate)))
         return candidates
 
@@ -109,7 +120,8 @@ class SubprocessPlaywrightProvider:
         process = self._process
         if process is None or process.poll() is not None:
             raise VisibleCaptureUnsupported(
-                "The visible browser process is not running. Stop and relaunch the session."
+                "The visible browser process is not running. "
+                "Stop and relaunch the session."
             )
         return process
 
@@ -127,15 +139,18 @@ class SubprocessPlaywrightProvider:
             value = responses.get(timeout=self._response_timeout_seconds)
         except queue.Empty as exc:
             raise VisibleCaptureUnsupported(
-                "The visible browser did not respond in time. Keep it open and retry, or stop and relaunch."
+                "The visible browser did not respond in time. Keep it open and retry, "
+                "or stop and relaunch."
             ) from exc
         if isinstance(value, BaseException):
             raise VisibleCaptureUnsupported(
-                "The visible browser response could not be read. Stop and relaunch the session."
+                "The visible browser response could not be read. "
+                "Stop and relaunch the session."
             ) from value
         if value == "":
             raise VisibleCaptureUnsupported(
-                "The visible browser process exited before capture completed. Stop and relaunch the session."
+                "The visible browser process exited before capture completed. "
+                "Stop and relaunch the session."
             )
         return value
 
