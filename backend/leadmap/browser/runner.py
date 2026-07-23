@@ -73,7 +73,10 @@ def run(argv: Sequence[str] | None = None) -> int:
                     )
                     continue
                 max_results = request.payload.get("max_results")
-                if not isinstance(max_results, int) or isinstance(max_results, bool):
+                if not isinstance(max_results, int) or isinstance(
+                    max_results,
+                    bool,
+                ):
                     raise BrowserProtocolError("max_results must be an integer.")
                 candidates = capture_visible_google_maps_cards(
                     page,
@@ -119,7 +122,9 @@ def run(argv: Sequence[str] | None = None) -> int:
                         request_id=request_id,
                         ok=False,
                         error_code="browser_error",
-                        error_message="The visible browser could not capture the current results.",
+                        error_message=(
+                            "The visible browser could not capture the current results."
+                        ),
                     )
                 )
         context.close()
