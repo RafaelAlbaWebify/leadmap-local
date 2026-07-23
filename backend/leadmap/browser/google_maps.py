@@ -24,7 +24,11 @@ def _coordinates_from_url(url: str | None) -> tuple[str | None, str | None]:
     return match.group(1), match.group(2)
 
 
-def capture_visible_google_maps_cards(page: Any, *, max_results: int) -> list[dict[str, Any]]:
+def capture_visible_google_maps_cards(
+    page: Any,
+    *,
+    max_results: int,
+) -> list[dict[str, Any]]:
     if max_results < 1:
         raise ValueError("max_results must be at least 1.")
     if "google." not in page.url or "/maps" not in page.url:
@@ -55,7 +59,11 @@ def capture_visible_google_maps_cards(page: Any, *, max_results: int) -> list[di
             if "/maps/place/" in href and source_url is None:
                 source_url = href
                 provider_key = href
-            elif href.startswith("http") and "google." not in href and website is None:
+            elif (
+                href.startswith("http")
+                and "google." not in href
+                and website is None
+            ):
                 website = href
 
         lines = [line.strip() for line in text.splitlines() if line.strip()]
