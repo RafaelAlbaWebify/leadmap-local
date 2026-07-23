@@ -67,7 +67,10 @@ def test_decodes_explicit_error_envelope() -> None:
         error_message="Open Google Maps.",
     )
 
-    decoded = decode_response(encode_response(response), expected_request_id="request-1")
+    decoded = decode_response(
+        encode_response(response),
+        expected_request_id="request-1",
+    )
 
     assert decoded.ok is False
     assert decoded.error_code == "unsupported_page"
