@@ -30,28 +30,37 @@ class ProtocolResponse:
 
 def _decode_message(line: str) -> dict[str, Any]:
     if len(line.encode("utf-8")) > MAX_MESSAGE_BYTES:
-        raise BrowserProtocolError("Browser protocol message exceeded the size limit.")
+        raise BrowserProtocolError(
+            "Browser protocol message exceeded the size limit."
+        )
     try:
         value = json.loads(line)
     except json.JSONDecodeError as exc:
-        raise BrowserProtocolError("Browser protocol returned malformed JSON.") from exc
+        raise BrowserProtocolError(
+            "Browser protocol returned malformed JSON."
+        ) from exc
     if not isinstance(value, dict):
-        raise BrowserProtocolError("Browser protocol message must be a JSON object.")
+        raise BrowserProtocolError(
+            "Browser protocol message must be a JSON object."
+        )
     if value.get("protocol_version") != PROTOCOL_VERSION:
         raise BrowserProtocolError("Browser protocol version mismatch.")
     return value
 
 
 def encode_request(request: ProtocolRequest) -> str:
-    return json.dumps(
-        {
-            "protocol_version": PROTOCOL_VERSION,
-            "request_id": request.request_id,
-            "command": request.command,
-            "payload": request.payload,
-        },
-        separators=(",", ":"),
-    ) + "\n"
+    return (
+        json.dumps(
+            {
+                "protocol_version": PROTOCOL_VERSION,
+                "request_id": request.request_id,
+                "command": request.command,
+                "payload": request.payload,
+            },
+            separators=(",", ":"),
+        )
+        + "\n"
+    )
 
 
 def decode_request(line: str) -> ProtocolRequest:
@@ -60,12 +69,22 @@ def decode_request(line: str) -> ProtocolRequest:
     command = value.get("command")
     payload = value.get("payload", {})
     if not isinstance(request_id, str) or not request_id:
-        raise BrowserProtocolError("Browser protocol request_id is missing.")
+        raise BrowserProtocolError(
+            "Browser protocol request_id is missing."
+        )
     if not isinstance(command, str) or not command:
-        raise BrowserProtocolError("Browser protocol command is missing.")
+        raise BrowserProtocolError(
+            "Browser protocol command is missing."
+        )
     if not isinstance(payload, dict):
-        raise BrowserProtocolError("Browser protocol payload must be an object.")
-    return ProtocolRequest(request_id=request_id, command=command, payload=payload)
+        raise BrowserProtocolError(
+            "Browser protocol payload must be an object."
+        )
+    return ProtocolRequest(
+        request_id=request_id,
+        command=command,
+        payload=payload,
+    )
 
 
 def encode_response(response: ProtocolResponse) -> str:
@@ -84,26 +103,44 @@ def encode_response(response: ProtocolResponse) -> str:
     return json.dumps(value, separators=(",", ":")) + "\n"
 
 
-def decode_response(line: str, *, expected_request_id: str) -> ProtocolResponse:
+def decode_response(
+    line: str,
+    *,
+    expected_request_id: str,
+) -> ProtocolResponse:
     value = _decode_message(line)
     request_id = value.get("request_id")
     if request_id != expected_request_id:
-        raise BrowserProtocolError("Browser protocol response request_id mismatch.")
+        raise BrowserProtocolError(
+            "Browser protocol response request_id mismatch."
+        )
     ok = value.get("ok")
     if not isinstance(ok, bool):
-        raise BrowserProtocolError("Browser protocol response is missing ok state.")
+        raise BrowserProtocolError(
+            "Browser protocol response is missing ok state."
+        )
     if ok:
         result = value.get("result", {})
         if not isinstance(result, dict):
-            raise BrowserProtocolError("Browser protocol result must be an object.")
-        return ProtocolResponse(request_id=request_id, ok=True, result=result)
+            raise BrowserProtocolError(
+                "Browser protocol result must be an object."
+            )
+        return ProtocolResponse(
+            request_id=request_id,
+            ok=True,
+            result=result,
+        )
     error = value.get("error")
     if not isinstance(error, dict):
-        raise BrowserProtocolError("Browser protocol error envelope is missing.")
+        raise BrowserProtocolError(
+            "Browser protocol error envelope is missing."
+        )
     code = error.get("code")
     message = error.get("message")
     if not isinstance(code, str) or not isinstance(message, str):
-        raise BrowserProtocolError("Browser protocol error envelope is invalid.")
+        raise BrowserProtocolError(
+            "Browser protocol error envelope is invalid."
+        )
     return ProtocolResponse(
         request_id=request_id,
         ok=False,
@@ -114,6 +151,8 @@ def decode_response(line: str, *, expected_request_id: str) -> ProtocolResponse:
 
 def write_message(stream: TextIO, message: str) -> None:
     if len(message.encode("utf-8")) > MAX_MESSAGE_BYTES:
-        raise BrowserProtocolError("Browser protocol message exceeded the size limit.")
+        raise BrowserProtocolError(
+            "Browser protocol message exceeded the size limit."
+        )
     stream.write(message)
     stream.flush()
