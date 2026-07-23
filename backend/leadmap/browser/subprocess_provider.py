@@ -36,7 +36,9 @@ class SubprocessPlaywrightProvider:
 
     def launch(self, *, start_url: str) -> None:
         if self._process is not None and self._process.poll() is None:
-            raise AssistedSessionConflict("A visible browser process is already active.")
+            raise AssistedSessionConflict(
+                "A visible browser process is already active."
+            )
         self._profile_directory.mkdir(parents=True, exist_ok=True)
         self._process = subprocess.Popen(
             [
