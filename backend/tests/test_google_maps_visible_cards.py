@@ -12,9 +12,10 @@ class UnsupportedPage:
 
 
 def test_extracts_coordinates_from_google_maps_url() -> None:
-    assert _coordinates_from_url(
-        "https://www.google.com/maps/place/Test/@53.2707,-9.0568,17z"
-    ) == ("53.2707", "-9.0568")
+    assert _coordinates_from_url("https://www.google.com/maps/place/Test/@53.2707,-9.0568,17z") == (
+        "53.2707",
+        "-9.0568",
+    )
 
 
 def test_coordinates_are_optional() -> None:

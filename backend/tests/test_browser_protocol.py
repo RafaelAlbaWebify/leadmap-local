@@ -30,10 +30,7 @@ def test_response_round_trip() -> None:
         result={"candidates": []},
     )
 
-    assert (
-        decode_response(encode_response(response), expected_request_id="request-1")
-        == response
-    )
+    assert decode_response(encode_response(response), expected_request_id="request-1") == response
 
 
 def test_rejects_mismatched_request_id() -> None:
