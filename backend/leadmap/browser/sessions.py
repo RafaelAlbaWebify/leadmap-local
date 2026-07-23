@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import re
-import subprocess
-import sys
 from dataclasses import dataclass, replace
 from enum import StrEnum
-from pathlib import Path
 from typing import Protocol
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
@@ -165,51 +162,6 @@ def normalize_and_deduplicate_candidates(
             break
 
     return tuple(result)
-
-
-class SubprocessPlaywrightProvider:
-    def __init__(self, *, profile_directory: Path = Path("browser-profile")) -> None:
-        self._profile_directory = profile_directory
-        self._process: subprocess.Popen[bytes] | None = None
-
-    def launch(self, *, start_url: str) -> None:
-        if self._process is not None and self._process.poll() is None:
-            raise AssistedSessionConflict("A visible browser process is already active.")
-        self._profile_directory.mkdir(parents=True, exist_ok=True)
-        self._process = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "backend.leadmap.browser.runner",
-                "--profile-directory",
-                str(self._profile_directory),
-                "--start-url",
-                start_url,
-            ],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        if self._process.poll() is not None:
-            raise RuntimeError("The visible browser process exited during launch.")
-
-    def capture_visible(self, *, max_results: int) -> list[VisibleCandidate]:
-        raise VisibleCaptureUnsupported(
-            "Visible-result capture is not connected to the browser process yet. "
-            "Keep the session open and install the provider adapter before retrying."
-        )
-
-    def stop(self) -> None:
-        process = self._process
-        self._process = None
-        if process is None or process.poll() is not None:
-            return
-        process.terminate()
-        try:
-            process.wait(timeout=8)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
 
 
 class AssistedSessionManager:
