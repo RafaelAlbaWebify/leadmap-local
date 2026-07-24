@@ -1,14 +1,16 @@
 from sqlalchemy.orm import Session
 
 from backend.leadmap.persistence.repositories import LeadRepository
-from backend.leadmap.services.seed import IRELAND_TERRITORIES, seed_ireland
-
+from backend.leadmap.services.seed import (
+    IRELAND_TERRITORIES,
+    seed_ireland,
+)
 
 EXPECTED_REPRESENTATIVE_TERRITORIES = {
     "Cork City",
     "Cork County",
     "Dublin City",
-    "Dún Laoghaire–Rathdown",
+    "Dún Laoghaire-Rathdown",
     "Galway City",
     "Galway County",
     "Limerick City and County",
