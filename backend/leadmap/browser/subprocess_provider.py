@@ -22,6 +22,13 @@ from .sessions import (
     VisibleCandidate,
     VisibleCaptureUnsupported,
 )
+from .traversal import (
+    TraversalLimits,
+    TraversalObservation,
+    TraversalProgress,
+    TraversalResult,
+    TraversalStopReason,
+)
 
 
 class SubprocessPlaywrightProvider:
@@ -29,7 +36,7 @@ class SubprocessPlaywrightProvider:
         self,
         *,
         profile_directory: Path | None = None,
-        response_timeout_seconds: float = 10.0,
+        response_timeout_seconds: float = 120.0,
     ) -> None:
         configured_profile = os.environ.get(
             "LEADMAP_BROWSER_PROFILE_DIRECTORY",
@@ -64,6 +71,77 @@ class SubprocessPlaywrightProvider:
             raise RuntimeError("The visible browser process exited during launch.")
 
     def capture_visible(self, *, max_results: int) -> list[VisibleCandidate]:
+        result = self._request(
+            command="capture_visible",
+            payload={"max_results": max_results},
+        )
+        raw_candidates = result.get("candidates")
+        return self._decode_candidates(raw_candidates, max_results=max_results)
+
+    def collect_bounded(
+        self,
+        *,
+        query_text: str,
+        query_sequence: int,
+        limits: TraversalLimits,
+    ) -> TraversalResult:
+        result = self._request(
+            command="collect_bounded",
+            payload={
+                "query_text": query_text,
+                "query_sequence": query_sequence,
+                "max_cards": limits.max_cards,
+                "max_scrolls": limits.max_scrolls,
+                "max_elapsed_seconds": limits.max_elapsed_seconds,
+                "max_stagnant_scrolls": limits.max_stagnant_scrolls,
+            },
+        )
+        candidates = self._decode_candidates(
+            result.get("candidates"),
+            max_results=limits.max_cards,
+        )
+        raw_progress = result.get("progress")
+        if not isinstance(raw_progress, dict):
+            raise BrowserProtocolError("Browser protocol progress must be an object.")
+        try:
+            stop_reason = TraversalStopReason(str(raw_progress["stop_reason"]))
+            progress = TraversalProgress(
+                query_text=str(raw_progress["query_text"]),
+                query_sequence=int(raw_progress["query_sequence"]),
+                scroll_step=int(raw_progress["scroll_step"]),
+                unique_cards=int(raw_progress["unique_cards"]),
+                stagnant_scrolls=int(raw_progress["stagnant_scrolls"]),
+                elapsed_seconds=float(raw_progress["elapsed_seconds"]),
+                stop_reason=stop_reason,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise BrowserProtocolError("Browser protocol progress is invalid.") from exc
+        observations = tuple(
+            TraversalObservation(
+                candidate=candidate,
+                query_text=candidate.query_text or progress.query_text,
+                query_sequence=candidate.query_sequence or progress.query_sequence,
+                result_rank=candidate.result_rank or index,
+                first_seen_scroll_step=candidate.first_seen_scroll_step or 0,
+                captured_at=candidate.captured_at or "",
+            )
+            for index, candidate in enumerate(candidates, start=1)
+        )
+        return TraversalResult(observations=observations, progress=progress)
+
+    def stop(self) -> None:
+        process = self._process
+        self._process = None
+        if process is None or process.poll() is not None:
+            return
+        process.terminate()
+        try:
+            process.wait(timeout=8)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+
+    def _request(self, *, command: str, payload: dict[str, Any]) -> dict[str, Any]:
         process = self._require_running_process()
         if process.stdin is None or process.stdout is None:
             raise VisibleCaptureUnsupported(
@@ -76,8 +154,8 @@ class SubprocessPlaywrightProvider:
             encode_request(
                 ProtocolRequest(
                     request_id=request_id,
-                    command="capture_visible",
-                    payload={"max_results": max_results},
+                    command=command,
+                    payload=payload,
                 )
             ),
         )
@@ -85,9 +163,19 @@ class SubprocessPlaywrightProvider:
         response = decode_response(line, expected_request_id=request_id)
         if not response.ok:
             raise VisibleCaptureUnsupported(
-                response.error_message or "Visible-result capture failed."
+                response.error_message or "Visible-browser operation failed."
             )
-        raw_candidates = (response.result or {}).get("candidates")
+        result = response.result
+        if not isinstance(result, dict):
+            raise BrowserProtocolError("Browser protocol result must be an object.")
+        return result
+
+    def _decode_candidates(
+        self,
+        raw_candidates: object,
+        *,
+        max_results: int,
+    ) -> list[VisibleCandidate]:
         if not isinstance(raw_candidates, list):
             raise BrowserProtocolError("Browser protocol candidates must be a list.")
         if len(raw_candidates) > max_results:
@@ -102,18 +190,6 @@ class SubprocessPlaywrightProvider:
                 raise BrowserProtocolError("Browser protocol candidate contains unknown fields.")
             candidates.append(VisibleCandidate(**_candidate_values(raw_candidate)))
         return candidates
-
-    def stop(self) -> None:
-        process = self._process
-        self._process = None
-        if process is None or process.poll() is not None:
-            return
-        process.terminate()
-        try:
-            process.wait(timeout=8)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
 
     def _require_running_process(self) -> subprocess.Popen[str]:
         process = self._process
@@ -167,4 +243,9 @@ def _candidate_values(raw: dict[str, Any]) -> dict[str, Any]:
         "longitude": raw.get("longitude"),
         "raw_evidence": raw.get("raw_evidence"),
         "included": bool(raw.get("included", True)),
+        "query_text": raw.get("query_text"),
+        "query_sequence": raw.get("query_sequence"),
+        "result_rank": raw.get("result_rank"),
+        "first_seen_scroll_step": raw.get("first_seen_scroll_step"),
+        "captured_at": raw.get("captured_at"),
     }
