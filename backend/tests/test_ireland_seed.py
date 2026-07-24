@@ -37,7 +37,9 @@ def test_seed_adds_missing_authorities_without_replacing_existing_galway(
 
     result = seed_ireland(db_session)
     territories = repository.list_territories()
-    seeded_galway = next(item for item in territories if item.name == "Galway City")
+    seeded_galway = next(
+        item for item in territories if item.name == "Galway City"
+    )
 
     assert result["territories_created"] == 30
     assert result["total_territories"] == 31
