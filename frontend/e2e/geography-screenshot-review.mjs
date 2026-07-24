@@ -13,26 +13,53 @@ const source = {
   retrieved_at: "2026-07-20T10:00:00Z"
 };
 
+const territories = [
+  {
+    id: "territory-kildare",
+    name: "Kildare County",
+    country_code: "IE",
+    administrative_area: "County Kildare",
+    locality: null,
+    created_at: "2026-07-19T00:00:00Z"
+  },
+  {
+    id: "territory-wicklow",
+    name: "Wicklow County",
+    country_code: "IE",
+    administrative_area: "County Wicklow",
+    locality: null,
+    created_at: "2026-07-19T00:00:00Z"
+  },
+  {
+    id: "territory-1",
+    name: "Galway City",
+    country_code: "IE",
+    administrative_area: "County Galway",
+    locality: "Galway",
+    created_at: "2026-07-19T00:00:00Z"
+  }
+];
+
 const responses = {
   "/api/v1/dashboard": {
     total_businesses: 3,
     qualified_leads: 1,
     needs_review: 2,
     stale_records: 0,
-    territories: 1,
+    territories: 31,
     recent_leads: []
   },
-  "/api/v1/territories": [
+  "/api/v1/territories": territories,
+  "/api/v1/query-templates?country_code=IE": [
     {
-      id: "territory-1",
-      name: "Galway City",
-      country_code: "IE",
-      administrative_area: "County Galway",
-      locality: "Galway",
+      id: "template-accountancy",
+      name: "Accountancy",
+      sector: "Professional Services",
+      countries: ["IE"],
+      phrases: ["accountant", "accounting firm", "tax advisor", "bookkeeper"],
       created_at: "2026-07-19T00:00:00Z"
     }
   ],
-  "/api/v1/query-templates?country_code=IE": [],
   "/api/v1/leads": [],
   "/api/v1/geography/territory-links": [
     {
@@ -161,12 +188,32 @@ try {
   });
 
   await page.goto("http://127.0.0.1:5173", { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Markets", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Find the best markets before collecting businesses." }).waitFor();
   await page.getByText("2 validated boundaries").waitFor();
   await page.getByLabel("Coverage freshness legend").waitFor();
   await waitForStableMap(page);
-  await page.screenshot({ path: "artifacts/screenshots/overview-geography.png", fullPage: true });
+  await page.screenshot({ path: "artifacts/screenshots/markets-guided-shell.png", fullPage: true });
 
-  await page.getByRole("button", { name: /Territories/i }).click();
+  await page.getByLabel("Sector").selectOption("template-accountancy");
+  await page.getByRole("button", { name: "Recommend markets" }).click();
+  await page.getByRole("heading", { name: "Recommended markets" }).waitFor();
+  await page.getByRole("heading", { name: "Kildare County" }).waitFor();
+  await page.screenshot({ path: "artifacts/screenshots/markets-recommendations.png", fullPage: true });
+
+  const kildareCard = page.locator(".recommendation-card").filter({ hasText: "Kildare County" });
+  await kildareCard.getByRole("button", { name: "Research this market" }).click();
+  await page.getByRole("heading", { name: "Discover" }).waitFor();
+  await page.getByLabel("Territory").waitFor();
+  if (await page.getByLabel("Territory").inputValue() !== "territory-kildare") {
+    throw new Error("Markets-to-Discover handoff did not retain Kildare County.");
+  }
+  if (await page.getByLabel("Query group").inputValue() !== "template-accountancy") {
+    throw new Error("Markets-to-Discover handoff did not retain Accountancy.");
+  }
+  await page.screenshot({ path: "artifacts/screenshots/discover-prefilled-market.png", fullPage: true });
+
+  await page.getByRole("button", { name: /^Territories$/ }).click();
   await page.getByRole("heading", { name: "Geographic workspace" }).waitFor();
   await waitForStableMap(page);
   await page.screenshot({ path: "artifacts/screenshots/territories-geography.png", fullPage: true });
