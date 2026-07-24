@@ -4,7 +4,9 @@ import re
 from typing import Any
 from urllib.parse import unquote
 
-_COORDINATES_RE = re.compile(r"/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)")
+_AT_COORDINATES_RE = re.compile(r"/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)")
+_DATA_COORDINATES_RE = re.compile(r"!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)")
+_MOJIBAKE_MARKERS = ("Ã", "Â", "â", "ð", "î")
 
 
 class VisiblePageUnsupported(RuntimeError):
@@ -18,10 +20,24 @@ class VisiblePageSelectorDrift(RuntimeError):
 def _coordinates_from_url(url: str | None) -> tuple[str | None, str | None]:
     if not url:
         return None, None
-    match = _COORDINATES_RE.search(unquote(url))
-    if match is None:
-        return None, None
-    return match.group(1), match.group(2)
+    decoded_url = unquote(url)
+    for pattern in (_AT_COORDINATES_RE, _DATA_COORDINATES_RE):
+        match = pattern.search(decoded_url)
+        if match is not None:
+            return match.group(1), match.group(2)
+    return None, None
+
+
+def _repair_mojibake(text: str) -> str:
+    if not any(marker in text for marker in _MOJIBAKE_MARKERS):
+        return text
+    try:
+        repaired = text.encode("latin-1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+    original_markers = sum(text.count(marker) for marker in _MOJIBAKE_MARKERS)
+    repaired_markers = sum(repaired.count(marker) for marker in _MOJIBAKE_MARKERS)
+    return repaired if repaired_markers < original_markers else text
 
 
 def capture_visible_google_maps_cards(
@@ -47,7 +63,7 @@ def capture_visible_google_maps_cards(
     captured: list[dict[str, Any]] = []
     for index in range(count):
         card = cards.nth(index)
-        text = card.inner_text(timeout=2_000).strip()
+        text = _repair_mojibake(card.inner_text(timeout=2_000).strip())
         links = card.locator("a[href]")
         source_url: str | None = None
         website: str | None = None
