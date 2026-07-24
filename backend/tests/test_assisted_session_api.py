@@ -18,11 +18,15 @@ class FakeProvider:
     def __init__(self) -> None:
         self.launches: list[str] = []
         self.stop_count = 0
+        self.fail_capture = False
+        self.fail_collect = False
 
     def launch(self, *, start_url: str) -> None:
         self.launches.append(start_url)
 
     def capture_visible(self, *, max_results: int) -> list[VisibleCandidate]:
+        if self.fail_capture:
+            raise RuntimeError("capture exploded")
         return []
 
     def collect_bounded(
@@ -32,6 +36,8 @@ class FakeProvider:
         query_sequence: int,
         limits: TraversalLimits,
     ):
+        if self.fail_collect:
+            raise RuntimeError("collection exploded")
         accumulator = OrderedCardAccumulator(
             query_text=query_text,
             query_sequence=query_sequence,
@@ -187,7 +193,40 @@ def test_collect_bounded_requires_ready_session(
     )
 
     assert response.status_code == 409
-    assert "marked ready" in response.json()["detail"]
+    assert "marks the browser ready" in response.json()["detail"]
+
+
+def test_visible_capture_provider_failure_returns_502_and_restores_ready(
+    assisted_client: tuple[TestClient, FakeProvider],
+) -> None:
+    client, provider = assisted_client
+    session_id = _launch_ready_session(client)
+    provider.fail_capture = True
+
+    response = client.post(f"/api/v1/discovery/session/{session_id}/capture-visible")
+
+    assert response.status_code == 502
+    assert "capture exploded" in response.json()["detail"]
+    assert client.get("/api/v1/discovery/session").json()["state"] == "ready"
+
+
+def test_bounded_collection_provider_failure_returns_502_and_restores_ready(
+    assisted_client: tuple[TestClient, FakeProvider],
+) -> None:
+    client, provider = assisted_client
+    session_id = _launch_ready_session(client)
+    provider.fail_collect = True
+
+    response = client.post(
+        f"/api/v1/discovery/session/{session_id}/collect-bounded",
+        params={"query_text": "accountant Galway"},
+    )
+
+    assert response.status_code == 502
+    assert "collection exploded" in response.json()["detail"]
+    status_response = client.get("/api/v1/discovery/session").json()
+    assert status_response["state"] == "ready"
+    assert status_response["error"] == "collection exploded"
 
 
 def test_launch_fails_closed_for_invalid_plan_and_limit(
