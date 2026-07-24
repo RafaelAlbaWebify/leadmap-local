@@ -248,8 +248,7 @@ def seed_ireland(session: Session) -> dict[str, int]:
     templates_created = 0
 
     existing_territories = {
-        (item.name.casefold(), item.country_code.upper())
-        for item in repository.list_territories()
+        (item.name.casefold(), item.country_code.upper()) for item in repository.list_territories()
     }
     for territory in IRELAND_TERRITORIES:
         key = (territory["name"].casefold(), territory["country_code"])
