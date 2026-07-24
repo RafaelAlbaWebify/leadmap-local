@@ -41,7 +41,16 @@ jobs:
       - name: Install backend dependencies
         run: python -m pip install -q -e ".[dev]"
       - name: Format check
-        run: ruff format --check .
+        run: |
+          ruff format --diff . > ruff-format-report.txt
+          ruff format --check .
+      - name: Upload format report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruff-format-report
+          path: ruff-format-report.txt
+          if-no-files-found: error
       - name: Type check
         run: mypy
       - name: Tests
