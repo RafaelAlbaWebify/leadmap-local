@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -16,6 +16,7 @@ from .schemas import (
     AssistedSessionReviewResponse,
     CandidateReviewUpdate,
     TraversalProgressResponse,
+    TraversalStopReasonValue,
     VisibleCandidateResponse,
 )
 
@@ -31,6 +32,7 @@ def _review_response(session: AssistedSession) -> AssistedSessionReviewResponse:
         VisibleCandidateResponse.model_validate(candidate) for candidate in session.candidates
     ]
     included_count = sum(candidate.included for candidate in session.candidates)
+    stop_reason = cast(TraversalStopReasonValue | None, session.traversal_stop_reason)
     progress = None
     if (
         session.traversal_query_text is not None
@@ -47,7 +49,7 @@ def _review_response(session: AssistedSession) -> AssistedSessionReviewResponse:
             unique_cards=session.traversal_unique_cards,
             stagnant_scrolls=session.traversal_stagnant_scrolls,
             elapsed_seconds=session.traversal_elapsed_seconds,
-            stop_reason=session.traversal_stop_reason,
+            stop_reason=stop_reason,
         )
     return AssistedSessionReviewResponse(
         session_id=session.session_id,
@@ -57,7 +59,7 @@ def _review_response(session: AssistedSession) -> AssistedSessionReviewResponse:
         start_url=session.start_url,
         error=session.error,
         traversal_progress=progress,
-        traversal_stop_reason=session.traversal_stop_reason,
+        traversal_stop_reason=stop_reason,
         candidates=candidates,
         included_count=included_count,
         excluded_count=len(candidates) - included_count,
