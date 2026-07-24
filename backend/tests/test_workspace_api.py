@@ -3,10 +3,12 @@ def test_seed_ireland_is_idempotent(client) -> None:
     second = client.post("/api/v1/seed/ireland")
 
     assert first.status_code == 200
-    assert first.json()["territories_created"] == 1
+    assert first.json()["territories_created"] == 31
+    assert first.json()["total_territories"] == 31
     assert first.json()["query_templates_created"] == 5
     assert second.status_code == 200
     assert second.json()["territories_created"] == 0
+    assert second.json()["total_territories"] == 31
     assert second.json()["query_templates_created"] == 0
 
 
