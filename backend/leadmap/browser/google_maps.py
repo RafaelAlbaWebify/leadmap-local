@@ -28,16 +28,39 @@ def _coordinates_from_url(url: str | None) -> tuple[str | None, str | None]:
     return None, None
 
 
-def _repair_mojibake(text: str) -> str:
+def _repair_latin1_span(text: str) -> str:
     if not any(marker in text for marker in _MOJIBAKE_MARKERS):
         return text
     try:
         repaired = text.encode("latin-1").decode("utf-8")
-    except (UnicodeEncodeError, UnicodeDecodeError):
+    except UnicodeDecodeError:
         return text
     original_markers = sum(text.count(marker) for marker in _MOJIBAKE_MARKERS)
     repaired_markers = sum(repaired.count(marker) for marker in _MOJIBAKE_MARKERS)
     return repaired if repaired_markers < original_markers else text
+
+
+def _repair_mojibake(text: str) -> str:
+    if not any(marker in text for marker in _MOJIBAKE_MARKERS):
+        return text
+
+    repaired_parts: list[str] = []
+    latin1_span: list[str] = []
+
+    def flush_span() -> None:
+        if latin1_span:
+            repaired_parts.append(_repair_latin1_span("".join(latin1_span)))
+            latin1_span.clear()
+
+    for character in text:
+        if ord(character) <= 255:
+            latin1_span.append(character)
+        else:
+            flush_span()
+            repaired_parts.append(character)
+    flush_span()
+
+    return "".join(repaired_parts)
 
 
 def capture_visible_google_maps_cards(
