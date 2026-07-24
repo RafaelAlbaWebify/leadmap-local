@@ -63,7 +63,7 @@ IRELAND_TERRITORIES: list[TerritorySeed] = [
         "locality": "Dublin",
     },
     {
-        "name": "Dún Laoghaire–Rathdown",
+        "name": "Dún Laoghaire-Rathdown",
         "country_code": "IE",
         "administrative_area": "County Dublin",
         "locality": None,
