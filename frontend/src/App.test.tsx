@@ -41,7 +41,7 @@ const responses: Record<string, unknown> = {
     qualified_leads: 1,
     needs_review: 2,
     stale_records: 0,
-    territories: 1,
+    territories: 31,
     recent_leads: []
   },
   "/api/v1/territories": [{
@@ -196,7 +196,7 @@ function renderApp() {
 }
 
 async function previewPlan() {
-  fireEvent.click(screen.getByRole("button", { name: /^Discovery/i }));
+  fireEvent.click(screen.getByRole("button", { name: /^Discover$/ }));
   await screen.findByRole("option", { name: "Galway City" });
   await screen.findByRole("option", { name: "Accountancy" });
   fireEvent.change(screen.getByLabelText("Territory"), { target: { value: "territory-1" } });
@@ -208,13 +208,32 @@ async function previewPlan() {
 }
 
 describe("App", () => {
+  it("renders Markets as the guided landing page", async () => {
+    renderApp();
+    expect(await screen.findByRole("heading", { name: "Markets" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Find the best markets before collecting businesses." })).toBeInTheDocument();
+    expect(screen.getByText("31")).toBeInTheDocument();
+  });
+
+  it("carries a recommended market into Discover", async () => {
+    renderApp();
+    await screen.findByRole("option", { name: "Accountancy" });
+    fireEvent.change(screen.getByLabelText("Sector"), { target: { value: "template-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Recommend markets" }));
+    expect(await screen.findByRole("heading", { name: "Recommended markets" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Research this market" }));
+    expect(await screen.findByRole("heading", { name: "Discover" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Territory")).toHaveValue("territory-1");
+    expect(screen.getByLabelText("Query group")).toHaveValue("template-1");
+  });
+
   it("renders the validated geographic workspace", async () => {
     renderApp();
     expect(await screen.findByText("Local Authorities 2026")).toBeInTheDocument();
     expect(screen.getByText("1 validated boundaries")).toBeInTheDocument();
     expect(screen.getByLabelText("Coverage freshness legend")).toBeInTheDocument();
     await waitFor(() => expect(mapMethods.addSource).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: /Territories/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Territories$/ }));
     expect(await screen.findByText("Galway City")).toBeInTheDocument();
   });
 
