@@ -212,7 +212,7 @@ describe("App", () => {
     renderApp();
     expect(await screen.findByRole("heading", { name: "Markets" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Find the best markets before collecting businesses." })).toBeInTheDocument();
-    expect(screen.getByText("31")).toBeInTheDocument();
+    expect(await screen.findByText("31")).toBeInTheDocument();
   });
 
   it("carries a recommended market into Discover", async () => {
