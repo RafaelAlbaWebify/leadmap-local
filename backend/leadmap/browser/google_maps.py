@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import re
+import time
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import unquote
+
+from .sessions import VisibleCandidate
+from .traversal import OrderedCardAccumulator, TraversalLimits, TraversalResult
 
 _AT_COORDINATES_RE = re.compile(r"/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)")
 _DATA_COORDINATES_RE = re.compile(r"!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)")
 _MOJIBAKE_MARKERS = ("Ã", "Â", "â", "ð", "î")
+_END_OF_LIST_MARKERS = (
+    "you've reached the end of the list",
+    "you have reached the end of the list",
+)
 
 
 class VisiblePageUnsupported(RuntimeError):
@@ -84,6 +93,32 @@ def _repair_mojibake(text: str) -> str:
     return "".join(repaired)
 
 
+def _candidate_from_mapping(raw: dict[str, Any]) -> VisibleCandidate:
+    return VisibleCandidate(
+        candidate_id=str(raw.get("candidate_id") or ""),
+        provider_key=str(raw.get("provider_key") or ""),
+        displayed_name=str(raw.get("displayed_name") or ""),
+        normalized_name=str(raw.get("normalized_name") or ""),
+        category=raw.get("category"),
+        address_text=raw.get("address_text"),
+        phone=raw.get("phone"),
+        website=raw.get("website"),
+        source_url=raw.get("source_url"),
+        latitude=raw.get("latitude"),
+        longitude=raw.get("longitude"),
+        raw_evidence=raw.get("raw_evidence"),
+        included=bool(raw.get("included", True)),
+    )
+
+
+def _feed_has_end_marker(feed: Any) -> bool:
+    try:
+        text = feed.inner_text(timeout=1_000).casefold()
+    except Exception:
+        return False
+    return any(marker in text for marker in _END_OF_LIST_MARKERS)
+
+
 def capture_visible_google_maps_cards(
     page: Any,
     *,
@@ -145,3 +180,56 @@ def capture_visible_google_maps_cards(
             }
         )
     return captured
+
+
+def traverse_google_maps_results(
+    page: Any,
+    *,
+    query_text: str,
+    query_sequence: int,
+    limits: TraversalLimits,
+) -> TraversalResult:
+    if "google." not in page.url or "/maps" not in page.url:
+        raise VisiblePageUnsupported(
+            "Open a supported Google Maps results page in the visible browser and retry."
+        )
+
+    feed = page.locator('[role="feed"]')
+    if feed.count() == 0:
+        raise VisiblePageSelectorDrift(
+            "No Google Maps result panel was found. Confirm the results panel is open and retry."
+        )
+
+    accumulator = OrderedCardAccumulator(
+        query_text=query_text,
+        query_sequence=query_sequence,
+        limits=limits,
+    )
+    started = time.monotonic()
+    scroll_step = 0
+
+    while True:
+        elapsed = time.monotonic() - started
+        raw_cards = capture_visible_google_maps_cards(page, max_results=limits.max_cards)
+        accumulator.add_batch(
+            [_candidate_from_mapping(card) for card in raw_cards],
+            scroll_step=scroll_step,
+            captured_at=datetime.now(UTC).isoformat(),
+        )
+        stop_reason = accumulator.evaluate_stop(
+            scroll_step=scroll_step,
+            elapsed_seconds=elapsed,
+            end_of_list=_feed_has_end_marker(feed),
+        )
+        if stop_reason is not None:
+            return accumulator.result(
+                scroll_step=scroll_step,
+                elapsed_seconds=elapsed,
+                stop_reason=stop_reason,
+            )
+
+        feed.evaluate(
+            "(element) => element.scrollBy(0, Math.max(element.clientHeight * 0.8, 500))"
+        )
+        page.wait_for_timeout(750)
+        scroll_step += 1
