@@ -1,9 +1,11 @@
 from pathlib import Path
 
+import pytest
+
 from backend.leadmap.browser.subprocess_provider import SubprocessPlaywrightProvider
 
 
-def test_uses_default_browser_profile_directory(monkeypatch) -> None:
+def test_uses_default_browser_profile_directory(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("LEADMAP_BROWSER_PROFILE_DIRECTORY", raising=False)
 
     provider = SubprocessPlaywrightProvider()
@@ -11,7 +13,10 @@ def test_uses_default_browser_profile_directory(monkeypatch) -> None:
     assert provider._profile_directory == Path("browser-profile")
 
 
-def test_uses_configured_browser_profile_directory(monkeypatch, tmp_path: Path) -> None:
+def test_uses_configured_browser_profile_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     profile_directory = tmp_path / "acceptance-browser-profile"
     monkeypatch.setenv("LEADMAP_BROWSER_PROFILE_DIRECTORY", str(profile_directory))
 
@@ -21,7 +26,7 @@ def test_uses_configured_browser_profile_directory(monkeypatch, tmp_path: Path) 
 
 
 def test_explicit_profile_directory_overrides_environment(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     monkeypatch.setenv(
