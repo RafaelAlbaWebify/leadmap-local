@@ -3,9 +3,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, replace
 from enum import StrEnum
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from .traversal import TraversalLimits, TraversalResult
 
 
 class AssistedSessionState(StrEnum):
@@ -43,6 +46,11 @@ class VisibleCandidate:
     longitude: str | None = None
     raw_evidence: str | None = None
     included: bool = True
+    query_text: str | None = None
+    query_sequence: int | None = None
+    result_rank: int | None = None
+    first_seen_scroll_step: int | None = None
+    captured_at: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +62,13 @@ class AssistedSession:
     start_url: str | None = None
     error: str | None = None
     candidates: tuple[VisibleCandidate, ...] = ()
+    traversal_query_text: str | None = None
+    traversal_query_sequence: int | None = None
+    traversal_scroll_step: int | None = None
+    traversal_unique_cards: int | None = None
+    traversal_stagnant_scrolls: int | None = None
+    traversal_elapsed_seconds: float | None = None
+    traversal_stop_reason: str | None = None
 
 
 class AssistedSessionConflict(RuntimeError):
@@ -72,6 +87,14 @@ class AssistedBrowserProvider(Protocol):
     def launch(self, *, start_url: str) -> None: ...
 
     def capture_visible(self, *, max_results: int) -> list[VisibleCandidate]: ...
+
+    def collect_bounded(
+        self,
+        *,
+        query_text: str,
+        query_sequence: int,
+        limits: TraversalLimits,
+    ) -> TraversalResult: ...
 
     def stop(self) -> None: ...
 
@@ -156,6 +179,11 @@ def normalize_and_deduplicate_candidates(
                 longitude=_clean_text(candidate.longitude),
                 raw_evidence=_clean_text(candidate.raw_evidence),
                 included=candidate.included,
+                query_text=_clean_text(candidate.query_text),
+                query_sequence=candidate.query_sequence,
+                result_rank=candidate.result_rank,
+                first_seen_scroll_step=candidate.first_seen_scroll_step,
+                captured_at=_clean_text(candidate.captured_at),
             )
         )
         if len(result) >= max_results:
@@ -227,11 +255,7 @@ class AssistedSessionManager:
         *,
         max_results: int,
     ) -> AssistedSession:
-        self._require_current(session_id)
-        if self._session.state is not AssistedSessionState.READY:
-            raise AssistedSessionTransitionError(
-                "Visible results can be captured only after the operator marks the browser ready."
-            )
+        self._require_ready(session_id)
         self._session = replace(
             self._session,
             state=AssistedSessionState.CAPTURING,
@@ -244,17 +268,63 @@ class AssistedSessionManager:
                 max_results=max_results,
             )
         except Exception as exc:
-            self._session = replace(
-                self._session,
-                state=AssistedSessionState.READY,
-                error=str(exc),
-            )
+            self._restore_ready_after_error(exc)
             raise
         self._session = replace(
             self._session,
             state=AssistedSessionState.REVIEW,
             candidates=candidates,
             error=None,
+        )
+        return self._session
+
+    def collect_bounded(
+        self,
+        session_id: str,
+        *,
+        query_text: str,
+        query_sequence: int,
+        limits: TraversalLimits,
+    ) -> AssistedSession:
+        self._require_ready(session_id)
+        self._session = replace(
+            self._session,
+            state=AssistedSessionState.CAPTURING,
+            error=None,
+            traversal_query_text=query_text,
+            traversal_query_sequence=query_sequence,
+            traversal_scroll_step=0,
+            traversal_unique_cards=0,
+            traversal_stagnant_scrolls=0,
+            traversal_elapsed_seconds=0,
+            traversal_stop_reason=None,
+        )
+        try:
+            result = self._provider.collect_bounded(
+                query_text=query_text,
+                query_sequence=query_sequence,
+                limits=limits,
+            )
+            candidates = normalize_and_deduplicate_candidates(
+                [observation.candidate for observation in result.observations],
+                max_results=limits.max_cards,
+            )
+        except Exception as exc:
+            self._restore_ready_after_error(exc)
+            raise
+        progress = result.progress
+        self._session = replace(
+            self._session,
+            state=AssistedSessionState.REVIEW,
+            candidates=candidates,
+            error=None,
+            traversal_query_text=progress.query_text,
+            traversal_query_sequence=progress.query_sequence,
+            traversal_scroll_step=progress.scroll_step,
+            traversal_unique_cards=progress.unique_cards,
+            traversal_stagnant_scrolls=progress.stagnant_scrolls,
+            traversal_elapsed_seconds=progress.elapsed_seconds,
+            traversal_stop_reason=(progress.stop_reason.value if progress.stop_reason else None),
         )
         return self._session
 
@@ -299,8 +369,28 @@ class AssistedSessionManager:
         self._session = replace(
             self._session,
             state=AssistedSessionState.STOPPED,
+            traversal_stop_reason=(
+                "operator_stop"
+                if self._session.state is AssistedSessionState.CAPTURING
+                else self._session.traversal_stop_reason
+            ),
         )
         return self._session
+
+    def _require_ready(self, session_id: str) -> None:
+        self._require_current(session_id)
+        if self._session.state is not AssistedSessionState.READY:
+            raise AssistedSessionTransitionError(
+                "Results can be collected only after the operator marks the browser ready."
+            )
+
+    def _restore_ready_after_error(self, exc: Exception) -> None:
+        self._session = replace(
+            self._session,
+            state=AssistedSessionState.READY,
+            error=str(exc),
+            traversal_stop_reason="provider_error",
+        )
 
     def _require_current(self, session_id: str) -> None:
         if self._session.session_id != session_id:
