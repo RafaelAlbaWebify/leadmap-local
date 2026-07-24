@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     geographic_artifact_dir: str = "./data/geography"
     cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
     browser_headless: bool = False
+    browser_profile_directory: str = "browser-profile"
     max_capture_results: int = 20
 
     @property

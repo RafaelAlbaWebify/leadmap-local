@@ -3,6 +3,7 @@ import pytest
 from backend.leadmap.browser.google_maps import (
     VisiblePageUnsupported,
     _coordinates_from_url,
+    _repair_mojibake,
     capture_visible_google_maps_cards,
 )
 
@@ -18,12 +19,48 @@ def test_extracts_coordinates_from_google_maps_url() -> None:
     )
 
 
+def test_extracts_coordinates_from_google_maps_data_url() -> None:
+    assert _coordinates_from_url(
+        "https://www.google.com/maps/place/Test/data=!4m6!3m5!1s0x0:0x0!8m2!3d53.2741!4d-9.0494"
+    ) == ("53.2741", "-9.0494")
+
+
 def test_coordinates_are_optional() -> None:
     assert _coordinates_from_url(None) == (None, None)
     assert _coordinates_from_url("https://www.google.com/maps/place/Test") == (
         None,
         None,
     )
+    assert _coordinates_from_url(
+        "https://www.google.com/maps/place/Test/data=!3dinvalid!4d-9.0494"
+    ) == (None, None)
+
+
+def test_repairs_reversible_utf8_mojibake() -> None:
+    assert _repair_mojibake("BradÃ¡n Accountants Â· Galway") == "Bradán Accountants · Galway"
+
+
+def test_repairs_mojibake_around_non_latin_symbols() -> None:
+    assert _repair_mojibake("BradÃ¡n ★ 4.8 Â· Galway ") == "Bradán ★ 4.8 · Galway "
+
+
+def test_repairs_mixed_live_card_bytes_without_dropping_evidence() -> None:
+    raw = (
+        "BradÃ¡n Accountants 4.7(15)î¢\x8e Accountant Â· Ste 2 "
+        "Closed Â· Opens 9 am î\u00a0\x8b Website î\x94® Directions "
+        '"What truly sets BradÃ\u00a0n Accountants apart."'
+    )
+    assert _repair_mojibake(raw) == (
+        "Bradán Accountants 4.7(15)\ue88e Accountant · Ste 2 "
+        "Closed · Opens 9 am \ue80b Website \ue52e Directions "
+        '"What truly sets Bradàn Accountants apart."'
+    )
+
+
+def test_preserves_clean_unicode_and_ambiguous_text() -> None:
+    assert _repair_mojibake("Bradán Accountants · Galway") == "Bradán Accountants · Galway"
+    assert _repair_mojibake("îlot consulting") == "îlot consulting"
+    assert _repair_mojibake("Café ★ Galway ") == "Café ★ Galway "
 
 
 def test_rejects_unsupported_page_without_dom_access() -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import queue
 import subprocess
 import sys
@@ -27,10 +28,14 @@ class SubprocessPlaywrightProvider:
     def __init__(
         self,
         *,
-        profile_directory: Path = Path("browser-profile"),
+        profile_directory: Path | None = None,
         response_timeout_seconds: float = 10.0,
     ) -> None:
-        self._profile_directory = profile_directory
+        configured_profile = os.environ.get(
+            "LEADMAP_BROWSER_PROFILE_DIRECTORY",
+            "browser-profile",
+        )
+        self._profile_directory = profile_directory or Path(configured_profile)
         self._response_timeout_seconds = response_timeout_seconds
         self._process: subprocess.Popen[str] | None = None
 
