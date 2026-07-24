@@ -12,6 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   captureVisibleCandidates,
+  collectBoundedCandidates,
   createDiscoveryPlan,
   fetchDashboard,
   fetchLeads,
@@ -109,6 +110,7 @@ export function App() {
   const [marketRegion, setMarketRegion] = useState("all");
   const [marketGoal, setMarketGoal] = useState("best-opportunities");
   const [showRecommendations, setShowRecommendations] = useState(false);
+  const [approvedQueryText, setApprovedQueryText] = useState("");
   const [assistedSession, setAssistedSession] = useState<AssistedSession | null>(null);
   const [review, setReview] = useState<AssistedSessionReview | null>(null);
   const [busyCandidateId, setBusyCandidateId] = useState<string | null>(null);
@@ -130,7 +132,8 @@ export function App() {
   });
   const plan = useMutation({
     mutationFn: () => createDiscoveryPlan(territoryId, templateId),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      setApprovedQueryText(`${result.phrases[0]} ${result.territory_name}`);
       setAssistedSession(null);
       setReview(null);
     }
@@ -145,6 +148,13 @@ export function App() {
   });
   const captureSession = useMutation({
     mutationFn: (sessionId: string) => captureVisibleCandidates(sessionId),
+    onSuccess: (result) => {
+      setAssistedSession(result);
+      setReview(result);
+    }
+  });
+  const collectSession = useMutation({
+    mutationFn: (sessionId: string) => collectBoundedCandidates(sessionId, approvedQueryText),
     onSuccess: (result) => {
       setAssistedSession(result);
       setReview(result);
@@ -306,15 +316,25 @@ export function App() {
               {!plan.data && <div className="empty-state">Select a territory and query group.</div>}
               {plan.data && <>
                 <h3>{plan.data.query_template_name} in {plan.data.territory_name}</h3>
-                <p className="body-copy">{plan.data.total_planned_queries} prepared queries · maximum {plan.data.max_results_per_query} visible results each</p>
+                <p className="body-copy">{plan.data.total_planned_queries} prepared queries · bounded result-panel traversal</p>
                 <div className="query-chips">{plan.data.phrases.map((phrase) => <span key={phrase}>{phrase}</span>)}</div>
+                <label>Current approved query
+                  <input value={approvedQueryText} disabled={assistedSession?.state === "capturing" || assistedSession?.state === "review"} onChange={(event) => setApprovedQueryText(event.target.value)} />
+                </label>
                 {!assistedSession && <button className="primary-action full" disabled={launchSession.isPending} onClick={() => launchSession.mutate()}>{launchSession.isPending ? "Launching visible browser…" : "Launch visible browser"}</button>}
-                {assistedSession && <div className="notice">Session status: <strong>{assistedSession.state.replace("_", " ")}</strong>{assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the search, then confirm readiness here.</p>}</div>}
+                {assistedSession && <div className="notice">Session status: <strong>{assistedSession.state.replace("_", " ")}</strong>{assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the approved query, then confirm readiness here.</p>}</div>}
                 {assistedSession?.state === "awaiting_operator" && assistedSession.session_id && <button className="primary-action full" disabled={readySession.isPending} onClick={() => readySession.mutate(assistedSession.session_id!)}>Browser is ready</button>}
-                {assistedSession?.state === "ready" && assistedSession.session_id && <button className="primary-action full" disabled={captureSession.isPending} onClick={() => captureSession.mutate(assistedSession.session_id!)}>{captureSession.isPending ? "Capturing visible results…" : "Capture visible results"}</button>}
+                {assistedSession?.state === "ready" && assistedSession.session_id && <>
+                  <button className="primary-action full" disabled={!approvedQueryText.trim() || collectSession.isPending} onClick={() => collectSession.mutate(assistedSession.session_id!)}>{collectSession.isPending ? "Collecting bounded results…" : "Collect bounded results"}</button>
+                  <button className="secondary-action full" disabled={captureSession.isPending} onClick={() => captureSession.mutate(assistedSession.session_id!)}>{captureSession.isPending ? "Capturing visible results…" : "Capture currently visible only"}</button>
+                </>}
+                {review?.traversal_progress && <div className="notice traversal-summary" aria-label="Traversal summary">
+                  <strong>{review.traversal_progress.unique_cards} unique cards collected</strong>
+                  <p>{review.traversal_progress.scroll_step} scroll steps · {review.traversal_progress.elapsed_seconds.toFixed(1)} seconds · stopped: {review.traversal_progress.stop_reason?.replaceAll("_", " ") ?? "unknown"}</p>
+                </div>}
                 {sessionActive && assistedSession?.session_id && <button className="secondary-action full" disabled={stopSession.isPending} onClick={() => stopSession.mutate(assistedSession.session_id!)}>Stop assisted session</button>}
                 {review && assistedSession?.state === "review" && assistedSession.session_id && <CandidateReview review={review} busyCandidateId={busyCandidateId} onToggle={(candidateId, included) => candidateReview.mutate({ sessionId: assistedSession.session_id!, candidateId, included })} />}
-                {(launchSession.isError || readySession.isError || captureSession.isError || candidateReview.isError || stopSession.isError) && <div className="notice error">The assisted session action failed. Review the backend message and retry.</div>}
+                {(launchSession.isError || readySession.isError || captureSession.isError || collectSession.isError || candidateReview.isError || stopSession.isError) && <div className="notice error">The assisted session action failed. Review the backend message and retry.</div>}
               </>}
             </article>
           </section>
