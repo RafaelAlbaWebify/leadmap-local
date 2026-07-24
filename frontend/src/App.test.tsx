@@ -35,6 +35,7 @@ const source = {
 let territoryLinks: unknown[] = [];
 let assistedState = "idle";
 let candidateIncluded = true;
+let boundedReview = false;
 const responses: Record<string, unknown> = {
   "/api/v1/dashboard": {
     total_businesses: 3,
@@ -106,8 +107,21 @@ function assistedSession() {
 }
 
 function assistedReview() {
+  const traversal = boundedReview ? {
+    traversal_progress: {
+      query_text: "accountant Galway City",
+      query_sequence: 1,
+      scroll_step: 3,
+      unique_cards: 1,
+      stagnant_scrolls: 3,
+      elapsed_seconds: 2.5,
+      stop_reason: "no_new_results"
+    },
+    traversal_stop_reason: "no_new_results"
+  } : {};
   return {
     ...assistedSession(),
+    ...traversal,
     candidates: [{
       candidate_id: "candidate-1",
       provider_key: "place-1",
@@ -121,7 +135,12 @@ function assistedReview() {
       latitude: null,
       longitude: null,
       raw_evidence: "West Coast Accountancy · Accountant · Galway",
-      included: candidateIncluded
+      included: candidateIncluded,
+      query_text: boundedReview ? "accountant Galway City" : null,
+      query_sequence: boundedReview ? 1 : null,
+      result_rank: boundedReview ? 1 : null,
+      first_seen_scroll_step: boundedReview ? 0 : null,
+      captured_at: boundedReview ? "2026-07-24T18:00:00Z" : null
     }],
     included_count: candidateIncluded ? 1 : 0,
     excluded_count: candidateIncluded ? 0 : 1
@@ -167,7 +186,13 @@ vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit
     assistedState = "ready";
     return { ok: true, json: async () => assistedSession() };
   }
+  if (url.startsWith("/api/v1/discovery/session/session-1/collect-bounded?") && init?.method === "POST") {
+    boundedReview = true;
+    assistedState = "review";
+    return { ok: true, json: async () => assistedReview() };
+  }
   if (url === "/api/v1/discovery/session/session-1/capture-visible" && init?.method === "POST") {
+    boundedReview = false;
     assistedState = "review";
     return { ok: true, json: async () => assistedReview() };
   }
@@ -187,6 +212,7 @@ afterEach(() => {
   territoryLinks = [];
   assistedState = "idle";
   candidateIncluded = true;
+  boundedReview = false;
   vi.clearAllMocks();
 });
 
@@ -263,9 +289,10 @@ describe("App", () => {
     renderApp();
     await previewPlan();
     expect(screen.getByRole("button", { name: "Launch visible browser" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Current approved query")).toHaveValue("accountant Galway City");
   });
 
-  it("captures and reviews candidates only after explicit operator actions", async () => {
+  it("collects bounded candidates only after explicit operator actions", async () => {
     renderApp();
     await previewPlan();
 
@@ -273,12 +300,14 @@ describe("App", () => {
     expect(await screen.findByText("awaiting operator")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Browser is ready" }));
-    expect(await screen.findByRole("button", { name: "Capture visible results" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Collect bounded results" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Capture visible results" }));
+    fireEvent.click(screen.getByRole("button", { name: "Collect bounded results" }));
     expect(await screen.findByRole("region", { name: "Candidate review queue" })).toBeInTheDocument();
     expect(screen.getByText("West Coast Accountancy")).toBeInTheDocument();
     expect(screen.getByText(/1 included · 0 excluded/)).toBeInTheDocument();
+    expect(screen.getByText("1 unique cards collected")).toBeInTheDocument();
+    expect(screen.getByText(/stopped: no new results/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Include" }));
     expect(await screen.findByText(/0 included · 1 excluded/)).toBeInTheDocument();
