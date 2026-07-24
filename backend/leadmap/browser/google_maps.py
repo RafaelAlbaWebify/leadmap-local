@@ -28,39 +28,60 @@ def _coordinates_from_url(url: str | None) -> tuple[str | None, str | None]:
     return None, None
 
 
-def _repair_latin1_span(text: str) -> str:
-    if not any(marker in text for marker in _MOJIBAKE_MARKERS):
-        return text
-    try:
-        repaired = text.encode("latin-1").decode("utf-8")
-    except UnicodeDecodeError:
-        return text
-    original_markers = sum(text.count(marker) for marker in _MOJIBAKE_MARKERS)
-    repaired_markers = sum(repaired.count(marker) for marker in _MOJIBAKE_MARKERS)
-    return repaired if repaired_markers < original_markers else text
+def _utf8_sequence_length(first_byte: int) -> int | None:
+    if 0xC2 <= first_byte <= 0xDF:
+        return 2
+    if 0xE0 <= first_byte <= 0xEF:
+        return 3
+    if 0xF0 <= first_byte <= 0xF4:
+        return 4
+    return None
 
 
 def _repair_mojibake(text: str) -> str:
     if not any(marker in text for marker in _MOJIBAKE_MARKERS):
         return text
 
-    repaired_parts: list[str] = []
-    latin1_span: list[str] = []
+    repaired: list[str] = []
+    index = 0
+    while index < len(text):
+        character = text[index]
+        code_point = ord(character)
+        sequence_length = _utf8_sequence_length(code_point) if code_point <= 255 else None
+        if sequence_length is None or index + sequence_length > len(text):
+            repaired.append(character)
+            index += 1
+            continue
 
-    def flush_span() -> None:
-        if latin1_span:
-            repaired_parts.append(_repair_latin1_span("".join(latin1_span)))
-            latin1_span.clear()
+        candidate = text[index : index + sequence_length]
+        if any(ord(part) > 255 for part in candidate):
+            repaired.append(character)
+            index += 1
+            continue
 
-    for character in text:
-        if ord(character) <= 255:
-            latin1_span.append(character)
+        candidate_bytes = bytes(ord(part) for part in candidate)
+        if not all(0x80 <= byte <= 0xBF for byte in candidate_bytes[1:]):
+            repaired.append(character)
+            index += 1
+            continue
+
+        try:
+            decoded = candidate_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            repaired.append(character)
+            index += 1
+            continue
+
+        original_markers = sum(candidate.count(marker) for marker in _MOJIBAKE_MARKERS)
+        decoded_markers = sum(decoded.count(marker) for marker in _MOJIBAKE_MARKERS)
+        if decoded_markers < original_markers:
+            repaired.append(decoded)
+            index += sequence_length
         else:
-            flush_span()
-            repaired_parts.append(character)
-    flush_span()
+            repaired.append(character)
+            index += 1
 
-    return "".join(repaired_parts)
+    return "".join(repaired)
 
 
 def capture_visible_google_maps_cards(
