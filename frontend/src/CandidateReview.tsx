@@ -41,7 +41,10 @@ export function CandidateReview({ review, busyCandidateId, onToggle }: Candidate
             <p>{candidate.address_text ?? "No address captured"}</p>
             <small>{candidate.phone ?? "No phone captured"}</small>
             {(candidate.website || candidate.source_url) && (
-              <div className="candidate-links">
+              <div
+                className="candidate-links"
+                style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "10px" }}
+              >
                 {candidate.website && (
                   <a href={candidate.website} target="_blank" rel="noreferrer">
                     Website
