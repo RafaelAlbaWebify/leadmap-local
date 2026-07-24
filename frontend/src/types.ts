@@ -71,6 +71,25 @@ export type AssistedSessionState =
   | "stopped"
   | "failed";
 
+export type TraversalStopReason =
+  | "end_of_list"
+  | "no_new_results"
+  | "max_cards"
+  | "max_scrolls"
+  | "timeout"
+  | "operator_stop"
+  | "provider_error";
+
+export interface TraversalProgress {
+  query_text: string;
+  query_sequence: number;
+  scroll_step: number;
+  unique_cards: number;
+  stagnant_scrolls: number;
+  elapsed_seconds: number;
+  stop_reason: TraversalStopReason | null;
+}
+
 export interface AssistedSession {
   session_id: string | null;
   state: AssistedSessionState;
@@ -78,6 +97,8 @@ export interface AssistedSession {
   query_template_id: string | null;
   start_url: string | null;
   error: string | null;
+  traversal_progress?: TraversalProgress | null;
+  traversal_stop_reason?: TraversalStopReason | null;
 }
 
 export interface VisibleCandidate {
@@ -94,6 +115,11 @@ export interface VisibleCandidate {
   longitude: string | null;
   raw_evidence: string | null;
   included: boolean;
+  query_text?: string | null;
+  query_sequence?: number | null;
+  result_rank?: number | null;
+  first_seen_scroll_step?: number | null;
+  captured_at?: string | null;
 }
 
 export interface AssistedSessionReview extends AssistedSession {
