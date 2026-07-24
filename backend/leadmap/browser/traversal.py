@@ -55,6 +55,12 @@ class TraversalProgress:
     stop_reason: TraversalStopReason | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class TraversalResult:
+    observations: tuple[TraversalObservation, ...]
+    progress: TraversalProgress
+
+
 class OrderedCardAccumulator:
     def __init__(self, *, query_text: str, query_sequence: int, limits: TraversalLimits) -> None:
         if not query_text.strip():
@@ -94,9 +100,18 @@ class OrderedCardAccumulator:
                 break
             self._seen_provider_keys.add(provider_key)
             rank = len(self._observations) + 1
+            candidate_with_provenance = replace(
+                candidate,
+                provider_key=provider_key,
+                query_text=self._query_text,
+                query_sequence=self._query_sequence,
+                result_rank=rank,
+                first_seen_scroll_step=scroll_step,
+                captured_at=captured_at,
+            )
             self._observations.append(
                 TraversalObservation(
-                    candidate=replace(candidate, provider_key=provider_key),
+                    candidate=candidate_with_provenance,
                     query_text=self._query_text,
                     query_sequence=self._query_sequence,
                     result_rank=rank,
@@ -148,4 +163,20 @@ class OrderedCardAccumulator:
             stagnant_scrolls=self._stagnant_scrolls,
             elapsed_seconds=elapsed_seconds,
             stop_reason=stop_reason,
+        )
+
+    def result(
+        self,
+        *,
+        scroll_step: int,
+        elapsed_seconds: float,
+        stop_reason: TraversalStopReason,
+    ) -> TraversalResult:
+        return TraversalResult(
+            observations=self.observations,
+            progress=self.progress(
+                scroll_step=scroll_step,
+                elapsed_seconds=elapsed_seconds,
+                stop_reason=stop_reason,
+            ),
         )
