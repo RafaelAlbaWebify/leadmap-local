@@ -15,6 +15,7 @@ from .traversal import (
     TraversalLimits,
     TraversalObservation,
     TraversalProgress,
+    TraversalResult,
     TraversalStopReason,
 )
 
@@ -30,6 +31,7 @@ __all__ = [
     "TraversalLimits",
     "TraversalObservation",
     "TraversalProgress",
+    "TraversalResult",
     "TraversalStopReason",
     "VisibleCandidate",
     "VisibleCaptureUnsupported",
