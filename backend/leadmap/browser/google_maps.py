@@ -228,8 +228,6 @@ def traverse_google_maps_results(
                 stop_reason=stop_reason,
             )
 
-        feed.evaluate(
-            "(element) => element.scrollBy(0, Math.max(element.clientHeight * 0.8, 500))"
-        )
+        feed.evaluate("(element) => element.scrollBy(0, Math.max(element.clientHeight * 0.8, 500))")
         page.wait_for_timeout(750)
         scroll_step += 1
