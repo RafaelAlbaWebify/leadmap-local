@@ -22,16 +22,22 @@ def test_accumulator_preserves_first_seen_order_and_rank() -> None:
         limits=TraversalLimits(max_cards=10),
     )
 
-    assert accumulator.add_batch(
-        [_candidate("a", "Alpha"), _candidate("b", "Beta")],
-        scroll_step=0,
-        captured_at="2026-07-24T18:00:00Z",
-    ) == 2
-    assert accumulator.add_batch(
-        [_candidate("b", "Beta duplicate"), _candidate("c", "Gamma")],
-        scroll_step=1,
-        captured_at="2026-07-24T18:00:01Z",
-    ) == 1
+    assert (
+        accumulator.add_batch(
+            [_candidate("a", "Alpha"), _candidate("b", "Beta")],
+            scroll_step=0,
+            captured_at="2026-07-24T18:00:00Z",
+        )
+        == 2
+    )
+    assert (
+        accumulator.add_batch(
+            [_candidate("b", "Beta duplicate"), _candidate("c", "Gamma")],
+            scroll_step=1,
+            captured_at="2026-07-24T18:00:01Z",
+        )
+        == 1
+    )
 
     observations = accumulator.observations
     assert [item.candidate.provider_key for item in observations] == ["a", "b", "c"]
@@ -96,13 +102,16 @@ def test_stop_reason_precedence_is_deterministic() -> None:
         captured_at="2026-07-24T18:00:00Z",
     )
 
-    assert accumulator.evaluate_stop(
-        scroll_step=0,
-        elapsed_seconds=1,
-        operator_stop=True,
-        provider_error=True,
-        end_of_list=True,
-    ) is TraversalStopReason.OPERATOR_STOP
+    assert (
+        accumulator.evaluate_stop(
+            scroll_step=0,
+            elapsed_seconds=1,
+            operator_stop=True,
+            provider_error=True,
+            end_of_list=True,
+        )
+        is TraversalStopReason.OPERATOR_STOP
+    )
 
 
 def test_limits_reject_invalid_values() -> None:
