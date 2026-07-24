@@ -66,19 +66,7 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Test
-        run: |
-          set +e
-          npm run test > vitest-report.txt 2>&1
-          status=$?
-          cat vitest-report.txt
-          exit $status
-      - name: Upload Vitest report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vitest-report
-          path: frontend/vitest-report.txt
-          if-no-files-found: error
+        run: npm run test
       - name: Build
         run: npm run build
       - name: Install Playwright
@@ -86,14 +74,26 @@ jobs:
           npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
       - name: Playwright screenshot review
-        run: node e2e/geography-screenshot-review.mjs
+        run: |
+          set +e
+          node e2e/geography-screenshot-review.mjs > playwright-report.txt 2>&1
+          status=$?
+          cat playwright-report.txt
+          exit $status
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report.txt
+          if-no-files-found: error
       - name: Upload screenshot review
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: geography-screenshot-review
           path: frontend/artifacts/screenshots
-          if-no-files-found: error
+          if-no-files-found: warn
 
   frontend-windows:
     runs-on: windows-latest
