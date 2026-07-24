@@ -188,7 +188,7 @@ try {
   });
 
   await page.goto("http://127.0.0.1:5173", { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Markets" }).waitFor();
+  await page.getByRole("heading", { name: "Markets", exact: true }).waitFor();
   await page.getByRole("heading", { name: "Find the best markets before collecting businesses." }).waitFor();
   await page.getByText("2 validated boundaries").waitFor();
   await page.getByLabel("Coverage freshness legend").waitFor();
