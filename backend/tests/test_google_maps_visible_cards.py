@@ -37,15 +37,11 @@ def test_coordinates_are_optional() -> None:
 
 
 def test_repairs_reversible_utf8_mojibake() -> None:
-    assert _repair_mojibake("BradÃ¡n Accountants Â· Galway") == (
-        "Bradán Accountants · Galway"
-    )
+    assert _repair_mojibake("BradÃ¡n Accountants Â· Galway") == ("Bradán Accountants · Galway")
 
 
 def test_preserves_clean_unicode_and_ambiguous_text() -> None:
-    assert _repair_mojibake("Bradán Accountants · Galway") == (
-        "Bradán Accountants · Galway"
-    )
+    assert _repair_mojibake("Bradán Accountants · Galway") == ("Bradán Accountants · Galway")
     assert _repair_mojibake("îlot consulting") == "îlot consulting"
 
 
