@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity,
   Database,
-  Download,
   Globe2,
   LayoutDashboard,
   Map as MapIcon,
@@ -28,18 +27,34 @@ import { CandidateReview } from "./CandidateReview";
 import { GeographyWorkspace } from "./GeographyWorkspace";
 import type { AssistedSession, AssistedSessionReview, Lead } from "./types";
 
-type View = "Overview" | "Territories" | "Discovery" | "Leads" | "Exports";
+type View = "Markets" | "Discover" | "Businesses" | "Deals" | "Tasks" | "Insights" | "Territories";
 
-const navigation: Array<[View | "Coverage" | "Data quality" | "Activity", typeof MapIcon]> = [
-  ["Overview", LayoutDashboard],
-  ["Territories", MapIcon],
-  ["Discovery", Search],
-  ["Leads", Target],
-  ["Coverage", Globe2],
-  ["Data quality", Database],
-  ["Exports", Download],
-  ["Activity", Activity]
+type Recommendation = {
+  territoryId: string;
+  territoryName: string;
+  score: number;
+  reasons: string[];
+};
+
+const navigation: Array<[View, typeof MapIcon]> = [
+  ["Markets", Globe2],
+  ["Discover", Search],
+  ["Businesses", Target],
+  ["Deals", LayoutDashboard],
+  ["Tasks", Activity],
+  ["Insights", Database],
+  ["Territories", MapIcon]
 ];
+
+const pageDescription: Record<View, string> = {
+  Markets: "Choose where to prospect before spending time collecting businesses.",
+  Discover: "Run a bounded, user-approved business discovery session.",
+  Businesses: "Review persisted business observations and qualification evidence.",
+  Deals: "Track commercial opportunities created from qualified businesses.",
+  Tasks: "Keep research, outreach and follow-up work visible.",
+  Insights: "Understand which markets and prospecting activity are producing results.",
+  Territories: "Inspect validated boundaries and configured Irish discovery areas."
+};
 
 function MetricCard({ label, value, hint }: { label: string; value: number; hint: string }) {
   return (
@@ -55,7 +70,9 @@ function LeadTable({ leads }: { leads: Lead[] }) {
   return (
     <div className="table-scroll">
       <table>
-        <thead><tr><th>Business</th><th>Category</th><th>Area</th><th>Observed</th><th>Freshness</th><th>Status</th></tr></thead>
+        <thead>
+          <tr><th>Business</th><th>Category</th><th>Area</th><th>Observed</th><th>Freshness</th><th>Status</th></tr>
+        </thead>
         <tbody>
           {leads.map((lead) => (
             <tr key={`${lead.id}-${lead.last_observed_at}`}>
@@ -67,17 +84,31 @@ function LeadTable({ leads }: { leads: Lead[] }) {
               <td><span className="badge neutral">{lead.qualification_status.replace("_", " ")}</span></td>
             </tr>
           ))}
-          {leads.length === 0 && <tr><td colSpan={6} className="empty-state">No persisted leads yet.</td></tr>}
+          {leads.length === 0 && <tr><td colSpan={6} className="empty-state">No persisted businesses yet.</td></tr>}
         </tbody>
       </table>
     </div>
   );
 }
 
+function PlaceholderPage({ title, description }: { title: string; description: string }) {
+  return (
+    <section className="panel page-panel empty-module">
+      <span className="badge neutral">Planned module</span>
+      <h2>{title}</h2>
+      <p>{description}</p>
+      <div className="empty-state">The application shell is ready. Persistent records and actions arrive in the next vertical slice.</div>
+    </section>
+  );
+}
+
 export function App() {
-  const [view, setView] = useState<View>("Overview");
+  const [view, setView] = useState<View>("Markets");
   const [territoryId, setTerritoryId] = useState("");
   const [templateId, setTemplateId] = useState("");
+  const [marketRegion, setMarketRegion] = useState("all");
+  const [marketGoal, setMarketGoal] = useState("best-opportunities");
+  const [showRecommendations, setShowRecommendations] = useState(false);
   const [assistedSession, setAssistedSession] = useState<AssistedSession | null>(null);
   const [review, setReview] = useState<AssistedSessionReview | null>(null);
   const [busyCandidateId, setBusyCandidateId] = useState<string | null>(null);
@@ -133,79 +164,136 @@ export function App() {
     mutationFn: (sessionId: string) => stopAssistedSession(sessionId),
     onSuccess: setAssistedSession
   });
-  const groupedTemplates = new Map<string, NonNullable<typeof templates.data>>();
-  for (const item of templates.data ?? []) groupedTemplates.set(item.sector, [...(groupedTemplates.get(item.sector) ?? []), item]);
 
-  const pageDescription = {
-    Overview: "Plan searches, review captured businesses and keep territory data current.",
-    Territories: "Inspect validated geographic boundaries and configured discovery areas.",
-    Discovery: "Prepare a bounded, user-approved assisted search plan.",
-    Leads: "Review persisted business observations and freshness metadata.",
-    Exports: "Download stable CSV or JSON records for CRM and related applications."
-  }[view];
+  const groupedTemplates = new Map<string, NonNullable<typeof templates.data>>();
+  for (const item of templates.data ?? []) {
+    groupedTemplates.set(item.sector, [...(groupedTemplates.get(item.sector) ?? []), item]);
+  }
+
+  const recommendations = useMemo<Recommendation[]>(() => {
+    const all = territories.data ?? [];
+    const selected = marketRegion === "all" ? all : all.filter((item) => item.id === marketRegion);
+    const preferredNames = ["Kildare County", "Wicklow County", "Galway County"];
+    const ordered = [
+      ...preferredNames.map((name) => selected.find((item) => item.name === name)).filter((item) => item !== undefined),
+      ...selected.filter((item) => !preferredNames.includes(item.name))
+    ].slice(0, 3);
+    return ordered.map((item, index) => ({
+      territoryId: item.id,
+      territoryName: item.name,
+      score: 82 - index * 6,
+      reasons: ["Good prospect volume", "Useful local-business density", "Suitable for structured discovery"]
+    }));
+  }, [marketRegion, territories.data]);
 
   const sessionActive = assistedSession !== null && ["awaiting_operator", "ready", "capturing", "review"].includes(assistedSession.state);
+
+  function researchMarket(recommendation: Recommendation) {
+    setTerritoryId(recommendation.territoryId);
+    setView("Discover");
+    plan.reset();
+    setAssistedSession(null);
+    setReview(null);
+  }
 
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">LM</span> LeadMap</div>
-        <nav>
-          {navigation.map(([label, Icon]) => {
-            const enabled = ["Overview", "Territories", "Discovery", "Leads", "Exports"].includes(label);
-            return (
-              <button className={view === label ? "nav-item active" : "nav-item"} key={label} disabled={!enabled} onClick={() => enabled && setView(label as View)}>
-                <Icon size={17} /> {label}{!enabled && <span className="nav-soon">soon</span>}
-              </button>
-            );
-          })}
+        <div className="brand"><span className="brand-mark">LD</span><span><strong>LEADS</strong><small>Webify workspace</small></span></div>
+        <nav aria-label="Primary navigation">
+          {navigation.map(([label, Icon]) => (
+            <button className={view === label ? "nav-item active" : "nav-item"} key={label} onClick={() => setView(label)}>
+              <Icon size={17} /> {label}
+            </button>
+          ))}
         </nav>
         <button className="nav-item settings" disabled><Settings size={17} /> Settings <span className="nav-soon">soon</span></button>
       </aside>
 
       <main>
         <header className="page-header">
-          <div><p className="eyebrow">IRELAND / TERRITORY INTELLIGENCE</p><h1>{view}</h1><p>{pageDescription}</p></div>
-          {view === "Overview" && <button className="primary-action" onClick={() => setView("Discovery")}><Search size={16} /> Start discovery</button>}
+          <div><p className="eyebrow">WEBIFY / LOCAL BUSINESS GROWTH</p><h1>{view}</h1><p>{pageDescription[view]}</p></div>
+          {view === "Markets" && <button className="primary-action" onClick={() => setView("Discover")}><Search size={16} /> Start discovery</button>}
         </header>
 
-        {view === "Overview" && dashboard.data && (
+        {view === "Markets" && (
           <>
-            <section className="metrics">
-              <MetricCard label="TOTAL BUSINESSES" value={dashboard.data.total_businesses} hint="across all territories" />
-              <MetricCard label="QUALIFIED" value={dashboard.data.qualified_leads} hint="ready for export" />
-              <MetricCard label="NEEDS REVIEW" value={dashboard.data.needs_review} hint="unresolved candidates" />
-              <MetricCard label="STALE RECORDS" value={dashboard.data.stale_records} hint="verification due" />
-              <MetricCard label="TERRITORIES" value={dashboard.data.territories} hint="configured areas" />
+            <section className="market-hero">
+              <div>
+                <span className="badge neutral">Guided prospecting</span>
+                <h2>Find the best markets before collecting businesses.</h2>
+                <p>Choose a sector, region and commercial goal. LEADS will turn the selected market into a prepared discovery workflow.</p>
+              </div>
+              <div className="market-form panel">
+                <label>Sector
+                  <select value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
+                    <option value="">Select sector</option>
+                    {(templates.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <label>Region
+                  <select value={marketRegion} onChange={(event) => setMarketRegion(event.target.value)}>
+                    <option value="all">All Ireland</option>
+                    {(territories.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <label>Goal
+                  <select value={marketGoal} onChange={(event) => setMarketGoal(event.target.value)}>
+                    <option value="best-opportunities">Best Webify opportunities</option>
+                    <option value="largest-market">Largest reachable market</option>
+                    <option value="focused-research">Focused territory research</option>
+                  </select>
+                </label>
+                <button className="primary-action full" disabled={!templateId} onClick={() => setShowRecommendations(true)}>Recommend markets</button>
+                {!templateId && <small className="form-hint">Select a sector to generate the first guided recommendations.</small>}
+              </div>
             </section>
-            <section className="workspace-grid">
-              <article className="panel map-panel">
-                <div className="panel-heading"><div><h2>Territory workspace</h2><p>Latest validated local-authority artifact</p></div><button className="secondary-action" onClick={() => setView("Territories")}>Manage</button></div>
-                <GeographyWorkspace />
-              </article>
-              <article className="panel intelligence">
-                <div className="panel-heading"><div><h2>Workspace setup</h2><p>Persistent database status</p></div></div>
-                <p className="body-copy">Load the Ireland starter library to create Galway City and five reusable query groups.</p>
-                <button className="primary-action full" onClick={() => seed.mutate()} disabled={seed.isPending}>{seed.isPending ? "Loading…" : "Load Ireland starter data"}</button>
-                {seed.data && <p className="success-text">Starter data ready: {seed.data.total_query_templates} query groups.</p>}
-              </article>
+
+            {dashboard.data && (
+              <section className="metrics compact-metrics">
+                <MetricCard label="BUSINESSES" value={dashboard.data.total_businesses} hint="persisted observations" />
+                <MetricCard label="QUALIFIED" value={dashboard.data.qualified_leads} hint="ready for action" />
+                <MetricCard label="NEEDS REVIEW" value={dashboard.data.needs_review} hint="research queue" />
+                <MetricCard label="TERRITORIES" value={dashboard.data.territories} hint="Ireland coverage" />
+              </section>
+            )}
+
+            {showRecommendations && (
+              <section className="panel recommendation-panel">
+                <div className="panel-heading"><div><h2>Recommended markets</h2><p>Demonstration scores until the public-data ingestion layer is implemented.</p></div><span className="badge ageing">Demo data</span></div>
+                <div className="recommendation-grid">
+                  {recommendations.map((item) => (
+                    <article className="recommendation-card" key={item.territoryId}>
+                      <div className="recommendation-score"><strong>{item.score}</strong><small>/100</small></div>
+                      <h3>{item.territoryName}</h3>
+                      <ul>{item.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+                      <button className="secondary-action full" onClick={() => researchMarket(item)}>Research this market</button>
+                    </article>
+                  ))}
+                  {recommendations.length === 0 && <div className="empty-state">Load the Ireland territory library to create recommendations.</div>}
+                </div>
+              </section>
+            )}
+
+            <section className="panel page-panel">
+              <div className="panel-heading"><div><h2>Market coverage</h2><p>Validated Irish local-authority boundaries</p></div><button className="secondary-action" onClick={() => setView("Territories")}>Manage territories</button></div>
+              <GeographyWorkspace />
             </section>
-            <section className="panel table-panel"><div className="panel-heading"><div><h2>Recently observed businesses</h2><p>Acquisition date and freshness are retained.</p></div></div><LeadTable leads={dashboard.data.recent_leads} /></section>
           </>
         )}
 
         {view === "Territories" && (
           <section className="panel page-panel">
-            <div className="panel-heading"><div><h2>Geographic workspace</h2><p>Validated boundaries and configured discovery areas</p></div><button className="secondary-action" onClick={() => seed.mutate()}>Load Ireland starter</button></div>
+            <div className="panel-heading"><div><h2>Geographic workspace</h2><p>Validated boundaries and configured discovery areas</p></div><button className="secondary-action" onClick={() => seed.mutate()}>Load Ireland territories</button></div>
             <GeographyWorkspace />
             <div className="card-grid territory-cards">
-              {(territories.data ?? []).map((item) => <article className="record-card" key={item.id}><span className="badge neutral">{item.country_code}</span><h3>{item.name}</h3><p>{item.administrative_area ?? "No administrative area"}</p><small>{item.locality ?? "No locality"}</small></article>)}
+              {(territories.data ?? []).map((item) => <article className="record-card" key={item.id}><span className="badge neutral">{item.country_code}</span><h3>{item.name}</h3><p>{item.administrative_area ?? "No administrative area"}</p><small>{item.locality ?? "County-wide territory"}</small></article>)}
               {(territories.data ?? []).length === 0 && <div className="empty-state">No configured discovery territories.</div>}
             </div>
           </section>
         )}
 
-        {view === "Discovery" && (
+        {view === "Discover" && (
           <section className="discovery-layout">
             <article className="panel page-panel">
               <div className="panel-heading"><div><h2>Prepare assisted session</h2><p>The visible browser opens only after explicit approval.</p></div></div>
@@ -221,10 +309,7 @@ export function App() {
                 <p className="body-copy">{plan.data.total_planned_queries} prepared queries · maximum {plan.data.max_results_per_query} visible results each</p>
                 <div className="query-chips">{plan.data.phrases.map((phrase) => <span key={phrase}>{phrase}</span>)}</div>
                 {!assistedSession && <button className="primary-action full" disabled={launchSession.isPending} onClick={() => launchSession.mutate()}>{launchSession.isPending ? "Launching visible browser…" : "Launch visible browser"}</button>}
-                {assistedSession && <div className="notice">
-                  Session status: <strong>{assistedSession.state.replace("_", " ")}</strong>
-                  {assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the search, then confirm readiness here.</p>}
-                </div>}
+                {assistedSession && <div className="notice">Session status: <strong>{assistedSession.state.replace("_", " ")}</strong>{assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the search, then confirm readiness here.</p>}</div>}
                 {assistedSession?.state === "awaiting_operator" && assistedSession.session_id && <button className="primary-action full" disabled={readySession.isPending} onClick={() => readySession.mutate(assistedSession.session_id!)}>Browser is ready</button>}
                 {assistedSession?.state === "ready" && assistedSession.session_id && <button className="primary-action full" disabled={captureSession.isPending} onClick={() => captureSession.mutate(assistedSession.session_id!)}>{captureSession.isPending ? "Capturing visible results…" : "Capture visible results"}</button>}
                 {sessionActive && assistedSession?.session_id && <button className="secondary-action full" disabled={stopSession.isPending} onClick={() => stopSession.mutate(assistedSession.session_id!)}>Stop assisted session</button>}
@@ -235,8 +320,11 @@ export function App() {
           </section>
         )}
 
-        {view === "Leads" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Lead database</h2><p>{leads.data?.length ?? 0} persisted observations</p></div></div><LeadTable leads={leads.data ?? []} /></section>}
-        {view === "Exports" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Export records</h2><p>Versioned contracts for CRM and other local tools</p></div></div><div className="export-grid"><a className="export-card" href="/api/v1/exports/leads.csv"><Download size={22} /><strong>CSV export</strong><span>Tabular CRM import</span></a><a className="export-card" href="/api/v1/exports/leads.json"><Download size={22} /><strong>JSON export</strong><span>Versioned machine-readable package</span></a></div></section>}
+        {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted observations</p></div></div><LeadTable leads={leads.data ?? []} /></section>}
+        {view === "Deals" && <PlaceholderPage title="Deals pipeline" description="Qualified businesses will become commercial opportunities with stages, value, owner and next action." />}
+        {view === "Tasks" && <PlaceholderPage title="Tasks and follow-up" description="Research, outreach and proposal tasks will be linked to businesses and deals." />}
+        {view === "Insights" && <PlaceholderPage title="Market and pipeline insights" description="Territory, sector, discovery and conversion metrics will share one reporting model." />}
+
         {(dashboard.isError || territories.isError || templates.isError || leads.isError) && <div className="notice error">The backend is unavailable or returned an invalid response.</div>}
       </main>
     </div>
