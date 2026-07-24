@@ -22,51 +22,16 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - name: Install Ruff
-        run: python -m pip install -q "ruff>=0.11,<1"
+      - name: Install
+        run: python -m pip install -e ".[dev]"
       - name: Ruff
-        run: |
-          set +e
-          ruff check . > ruff-report.txt 2>&1
-          status=$?
-          cat ruff-report.txt
-          exit $status
-      - name: Upload Ruff report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ruff-report
-          path: ruff-report.txt
-          if-no-files-found: error
-      - name: Install backend dependencies
-        run: python -m pip install -q -e ".[dev]"
+        run: ruff check .
       - name: Format check
-        run: |
-          ruff format --diff . > ruff-format-report.txt
-          ruff format --check .
-      - name: Upload format report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ruff-format-report
-          path: ruff-format-report.txt
-          if-no-files-found: error
+        run: ruff format --check .
       - name: Type check
         run: mypy
       - name: Tests
-        run: |
-          set +e
-          pytest > pytest-report.txt 2>&1
-          status=$?
-          cat pytest-report.txt
-          exit $status
-      - name: Upload pytest report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytest-report
-          path: pytest-report.txt
-          if-no-files-found: error
+        run: pytest
 
   frontend:
     runs-on: ubuntu-latest
