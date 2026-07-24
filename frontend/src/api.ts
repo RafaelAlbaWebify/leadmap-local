@@ -113,6 +113,20 @@ export function captureVisibleCandidates(sessionId: string): Promise<AssistedSes
   });
 }
 
+export function collectBoundedCandidates(
+  sessionId: string,
+  queryText: string,
+  querySequence = 1
+): Promise<AssistedSessionReview> {
+  const query = new URLSearchParams({
+    query_text: queryText,
+    query_sequence: String(querySequence)
+  });
+  return requestJson(`/api/v1/discovery/session/${sessionId}/collect-bounded?${query}`, {
+    method: "POST"
+  });
+}
+
 export function updateCandidateReview(
   sessionId: string,
   candidateId: string,

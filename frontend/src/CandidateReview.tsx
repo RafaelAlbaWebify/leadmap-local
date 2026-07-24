@@ -40,15 +40,22 @@ export function CandidateReview({ review, busyCandidateId, onToggle }: Candidate
             </div>
             <p>{candidate.address_text ?? "No address captured"}</p>
             <small>{candidate.phone ?? "No phone captured"}</small>
-            {candidate.website && (
-              <a href={candidate.website} target="_blank" rel="noreferrer">
-                Website
-              </a>
-            )}
-            {candidate.source_url && (
-              <a href={candidate.source_url} target="_blank" rel="noreferrer">
-                Source evidence
-              </a>
+            {(candidate.website || candidate.source_url) && (
+              <div
+                className="candidate-links"
+                style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "10px" }}
+              >
+                {candidate.website && (
+                  <a href={candidate.website} target="_blank" rel="noreferrer">
+                    Website
+                  </a>
+                )}
+                {candidate.source_url && (
+                  <a href={candidate.source_url} target="_blank" rel="noreferrer">
+                    Source evidence
+                  </a>
+                )}
+              </div>
             )}
           </article>
         ))}

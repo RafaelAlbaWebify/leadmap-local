@@ -124,6 +124,16 @@ AssistedSessionStateValue = Literal[
     "failed",
 ]
 
+TraversalStopReasonValue = Literal[
+    "end_of_list",
+    "no_new_results",
+    "max_cards",
+    "max_scrolls",
+    "timeout",
+    "operator_stop",
+    "provider_error",
+]
+
 
 class AssistedSessionLaunch(DiscoveryPlanCreate):
     pass
@@ -145,6 +155,21 @@ class VisibleCandidateResponse(BaseModel):
     longitude: str | None
     raw_evidence: str | None
     included: bool
+    query_text: str | None = None
+    query_sequence: int | None = None
+    result_rank: int | None = None
+    first_seen_scroll_step: int | None = None
+    captured_at: datetime | None = None
+
+
+class TraversalProgressResponse(BaseModel):
+    query_text: str
+    query_sequence: int
+    scroll_step: int
+    unique_cards: int
+    stagnant_scrolls: int
+    elapsed_seconds: float
+    stop_reason: TraversalStopReasonValue | None = None
 
 
 class AssistedSessionResponse(BaseModel):
@@ -154,6 +179,8 @@ class AssistedSessionResponse(BaseModel):
     query_template_id: str | None
     start_url: str | None
     error: str | None
+    traversal_progress: TraversalProgressResponse | None = None
+    traversal_stop_reason: TraversalStopReasonValue | None = None
 
 
 class AssistedSessionReviewResponse(AssistedSessionResponse):

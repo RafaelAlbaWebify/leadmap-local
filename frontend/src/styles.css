@@ -6,8 +6,8 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
-button, select { font: inherit; }
-button:focus-visible, select:focus-visible { outline: 2px solid #17191c; outline-offset: 2px; }
+button, select, input { font: inherit; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #17191c; outline-offset: 2px; }
 .shell { min-height: 100vh; display: grid; grid-template-columns: 224px minmax(0, 1fr); }
 .sidebar { background: #f2f3f5; border-right: 1px solid #e2e4e8; padding: 24px 14px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
 .brand { padding: 0 10px 28px; display: flex; gap: 10px; align-items: center; }
@@ -67,6 +67,9 @@ td small { color: #92969c; margin-top: 4px; font-size: 10px; }
 .badge.never_verified, .badge.neutral { color: #555b63; background: #f5f6f7; border-color: #d8dbe0; }
 .notice { margin: 20px 0; padding: 12px; border: 1px solid #cfd4da; background: white; border-radius: 6px; font-size: 12px; }
 .notice.error { border-color: #e1adad; background: #fff5f5; }
+.traversal-summary { border-color: #b9c9bd; background: #f5faf6; }
+.traversal-summary strong { display: block; margin-bottom: 5px; }
+.traversal-summary p { margin: 0; color: #69716b; line-height: 1.5; }
 .nav-item:disabled { opacity: .48; cursor: default; }
 .nav-soon { margin-left: auto; font-size: 9px; color: #92979e; }
 .full { width: 100%; justify-content: center; margin-top: 12px; }
@@ -83,7 +86,8 @@ td small { color: #92969c; margin-top: 4px; font-size: 10px; }
 .record-card p, .record-card small { margin: 0; color: #7b8088; font-size: 11px; }
 .discovery-layout { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(420px, 1.2fr); gap: 16px; }
 label { display: grid; gap: 7px; margin-bottom: 15px; color: #565c64; font-size: 11px; font-weight: 600; }
-select { width: 100%; padding: 10px; border: 1px solid #d9dce1; border-radius: 6px; background: white; color: #202328; }
+select, input { width: 100%; padding: 10px; border: 1px solid #d9dce1; border-radius: 6px; background: white; color: #202328; }
+input:disabled { background: #f4f5f6; color: #777d85; }
 .query-chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 15px 0; }
 .query-chips span { padding: 6px 9px; border: 1px solid #d9dde2; border-radius: 999px; font-size: 11px; background: #f7f8f9; }
 .empty-state { color: #8b9097; text-align: center; padding: 28px !important; }

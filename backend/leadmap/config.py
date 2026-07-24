@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     browser_headless: bool = False
     browser_profile_directory: str = "browser-profile"
     max_capture_results: int = 20
+    max_traversal_results: int = 100
+    max_traversal_scrolls: int = 40
+    max_traversal_seconds: float = 90.0
+    max_stagnant_scrolls: int = 3
 
     @property
     def cors_origin_list(self) -> list[str]:

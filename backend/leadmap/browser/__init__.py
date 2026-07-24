@@ -10,6 +10,14 @@ from .sessions import (
     normalize_and_deduplicate_candidates,
 )
 from .subprocess_provider import SubprocessPlaywrightProvider
+from .traversal import (
+    OrderedCardAccumulator,
+    TraversalLimits,
+    TraversalObservation,
+    TraversalProgress,
+    TraversalResult,
+    TraversalStopReason,
+)
 
 __all__ = [
     "AssistedBrowserProvider",
@@ -18,7 +26,13 @@ __all__ = [
     "AssistedSessionManager",
     "AssistedSessionState",
     "AssistedSessionTransitionError",
+    "OrderedCardAccumulator",
     "SubprocessPlaywrightProvider",
+    "TraversalLimits",
+    "TraversalObservation",
+    "TraversalProgress",
+    "TraversalResult",
+    "TraversalStopReason",
     "VisibleCandidate",
     "VisibleCaptureUnsupported",
     "normalize_and_deduplicate_candidates",

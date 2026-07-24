@@ -127,6 +127,77 @@ const responses = {
   }
 };
 
+function session(state) {
+  return {
+    session_id: "session-1",
+    state,
+    territory_id: "territory-kildare",
+    query_template_id: "template-accountancy",
+    start_url: "https://www.google.com/maps/search/accountant+Kildare+County",
+    error: null
+  };
+}
+
+function boundedReview() {
+  return {
+    ...session("review"),
+    traversal_progress: {
+      query_text: "accountant Kildare County",
+      query_sequence: 1,
+      scroll_step: 4,
+      unique_cards: 2,
+      stagnant_scrolls: 3,
+      elapsed_seconds: 4.2,
+      stop_reason: "no_new_results"
+    },
+    traversal_stop_reason: "no_new_results",
+    candidates: [
+      {
+        candidate_id: "candidate-1",
+        provider_key: "place-1",
+        displayed_name: "Kildare Accountancy",
+        normalized_name: "kildare accountancy",
+        category: "Accountant",
+        address_text: "Kildare County",
+        phone: null,
+        website: "https://example.com",
+        source_url: "https://www.google.com/maps/place/Kildare+Accountancy",
+        latitude: "53.15",
+        longitude: "-6.91",
+        raw_evidence: "Kildare Accountancy · Accountant",
+        included: true,
+        query_text: "accountant Kildare County",
+        query_sequence: 1,
+        result_rank: 1,
+        first_seen_scroll_step: 0,
+        captured_at: "2026-07-24T18:00:00Z"
+      },
+      {
+        candidate_id: "candidate-2",
+        provider_key: "place-2",
+        displayed_name: "County Books",
+        normalized_name: "county books",
+        category: "Bookkeeping service",
+        address_text: "Kildare County",
+        phone: null,
+        website: null,
+        source_url: "https://www.google.com/maps/place/County+Books",
+        latitude: "53.17",
+        longitude: "-6.89",
+        raw_evidence: "County Books · Bookkeeping service",
+        included: true,
+        query_text: "accountant Kildare County",
+        query_sequence: 1,
+        result_rank: 2,
+        first_seen_scroll_step: 1,
+        captured_at: "2026-07-24T18:00:01Z"
+      }
+    ],
+    included_count: 2,
+    excluded_count: 0
+  };
+}
+
 async function waitForServer(url, timeoutMs = 30000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -170,8 +241,31 @@ try {
   await page.route("**/api/v1/**", async (route) => {
     const requestUrl = new URL(route.request().url());
     const path = requestUrl.pathname + requestUrl.search;
+    const method = route.request().method();
     if (path === artifactPath) artifactRequests += 1;
-    const payload = responses[path];
+
+    let payload = responses[path];
+    if (path === "/api/v1/discovery/plan" && method === "POST") {
+      payload = {
+        territory_id: "territory-kildare",
+        territory_name: "Kildare County",
+        country_code: "IE",
+        query_template_id: "template-accountancy",
+        query_template_name: "Accountancy",
+        sector: "Professional Services",
+        phrases: ["accountant", "accounting firm", "tax advisor", "bookkeeper"],
+        max_results_per_query: 20,
+        total_planned_queries: 4,
+        mode: "assisted"
+      };
+    } else if (path === "/api/v1/discovery/session" && method === "POST") {
+      payload = session("awaiting_operator");
+    } else if (path === "/api/v1/discovery/session/session-1/ready" && method === "POST") {
+      payload = session("ready");
+    } else if (path.startsWith("/api/v1/discovery/session/session-1/collect-bounded?") && method === "POST") {
+      payload = boundedReview();
+    }
+
     if (payload === undefined) {
       await route.fulfill({
         status: 404,
@@ -203,7 +297,7 @@ try {
 
   const kildareCard = page.locator(".recommendation-card").filter({ hasText: "Kildare County" });
   await kildareCard.getByRole("button", { name: "Research this market" }).click();
-  await page.getByRole("heading", { name: "Discover" }).waitFor();
+  await page.getByRole("heading", { name: "Discover", exact: true }).waitFor();
   await page.getByLabel("Territory").waitFor();
   if (await page.getByLabel("Territory").inputValue() !== "territory-kildare") {
     throw new Error("Markets-to-Discover handoff did not retain Kildare County.");
@@ -212,6 +306,22 @@ try {
     throw new Error("Markets-to-Discover handoff did not retain Accountancy.");
   }
   await page.screenshot({ path: "artifacts/screenshots/discover-prefilled-market.png", fullPage: true });
+
+  await page.getByRole("button", { name: "Preview search plan" }).click();
+  await page.getByLabel("Current approved query").waitFor();
+  if (await page.getByLabel("Current approved query").inputValue() !== "accountant Kildare County") {
+    throw new Error("Discovery plan did not prepare the approved query text.");
+  }
+  await page.getByRole("button", { name: "Launch visible browser" }).click();
+  await page.getByText("awaiting operator").waitFor();
+  await page.getByRole("button", { name: "Browser is ready" }).click();
+  await page.getByRole("button", { name: "Collect bounded results" }).click();
+  await page.getByLabel("Traversal summary").waitFor();
+  await page.getByText("2 unique cards collected").waitFor();
+  await page.getByText(/stopped: no new results/).waitFor();
+  await page.getByText("Kildare Accountancy").waitFor();
+  await page.getByText("County Books").waitFor();
+  await page.screenshot({ path: "artifacts/screenshots/discover-bounded-results.png", fullPage: true });
 
   await page.getByRole("button", { name: /^Territories$/ }).click();
   await page.getByRole("heading", { name: "Geographic workspace" }).waitFor();
