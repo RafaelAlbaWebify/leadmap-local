@@ -50,13 +50,13 @@ def test_repairs_mojibake_around_non_latin_symbols() -> None:
 
 def test_repairs_mixed_live_card_bytes_without_dropping_evidence() -> None:
     raw = (
-        "BradÃ¡n Accountants 4.7(15)î¢ Accountant Â· Ste 2 "
-        "Closed Â· Opens 9 am î  Website î® Directions "
-        '"What truly sets BradÃ n Accountants apart."'
+        "BradÃ¡n Accountants 4.7(15)î¢\x8e Accountant Â· Ste 2 "
+        "Closed Â· Opens 9 am î\u00a0\x8b Website î\x94® Directions "
+        '"What truly sets BradÃ\u00a0n Accountants apart."'
     )
     assert _repair_mojibake(raw) == (
-        "Bradán Accountants 4.7(15) Accountant · Ste 2 "
-        "Closed · Opens 9 am  Website  Directions "
+        "Bradán Accountants 4.7(15)\ue88e Accountant · Ste 2 "
+        "Closed · Opens 9 am \ue80b Website \ue52e Directions "
         '"What truly sets Bradàn Accountants apart."'
     )
 
