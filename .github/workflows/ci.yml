@@ -39,7 +39,19 @@ jobs:
           path: ruff-report.txt
           if-no-files-found: error
       - name: Format check
-        run: ruff format --check .
+        run: |
+          set +e
+          ruff format --check --diff . > format-report.txt 2>&1
+          status=$?
+          cat format-report.txt
+          exit $status
+      - name: Upload format report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traversal-format-report
+          path: format-report.txt
+          if-no-files-found: error
       - name: Type check
         run: mypy
       - name: Tests
