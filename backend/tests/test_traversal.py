@@ -63,7 +63,8 @@ def test_accumulator_stops_after_stagnant_scrolls() -> None:
         captured_at="2026-07-24T18:00:02Z",
     )
 
-    assert accumulator.evaluate_stop(scroll_step=2, elapsed_seconds=2) is TraversalStopReason.NO_NEW_RESULTS
+    stop_reason = accumulator.evaluate_stop(scroll_step=2, elapsed_seconds=2)
+    assert stop_reason is TraversalStopReason.NO_NEW_RESULTS
 
 
 def test_accumulator_enforces_card_limit() -> None:
@@ -79,7 +80,8 @@ def test_accumulator_enforces_card_limit() -> None:
     )
 
     assert len(accumulator.observations) == 2
-    assert accumulator.evaluate_stop(scroll_step=0, elapsed_seconds=0) is TraversalStopReason.MAX_CARDS
+    stop_reason = accumulator.evaluate_stop(scroll_step=0, elapsed_seconds=0)
+    assert stop_reason is TraversalStopReason.MAX_CARDS
 
 
 def test_stop_reason_precedence_is_deterministic() -> None:
