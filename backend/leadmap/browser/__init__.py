@@ -1,3 +1,9 @@
+from .query_group import (
+    AggregateBusiness,
+    QueryGroupAggregator,
+    QueryGroupSnapshot,
+    QueryRunSummary,
+)
 from .sessions import (
     AssistedBrowserProvider,
     AssistedSession,
@@ -20,6 +26,7 @@ from .traversal import (
 )
 
 __all__ = [
+    "AggregateBusiness",
     "AssistedBrowserProvider",
     "AssistedSession",
     "AssistedSessionConflict",
@@ -27,6 +34,9 @@ __all__ = [
     "AssistedSessionState",
     "AssistedSessionTransitionError",
     "OrderedCardAccumulator",
+    "QueryGroupAggregator",
+    "QueryGroupSnapshot",
+    "QueryRunSummary",
     "SubprocessPlaywrightProvider",
     "TraversalLimits",
     "TraversalObservation",
