@@ -21,6 +21,24 @@ def seed_business(session: Session, *, qualified: bool = True) -> BusinessRecord
     return business
 
 
+def seed_deal(session: Session) -> DealRecord:
+    business = seed_business(session)
+    now = datetime(2026, 7, 25, 13, 0, tzinfo=UTC)
+    deal = DealRecord(
+        id="deal-1",
+        business=business,
+        title="Website redesign opportunity",
+        stage="proposal",
+        value_eur_cents=350000,
+        next_action="Send proposal",
+        created_at=now,
+        updated_at=now,
+    )
+    session.add(deal)
+    session.commit()
+    return deal
+
+
 def test_create_and_list_deal_for_qualified_business(
     client: TestClient,
     db_session: Session,
@@ -100,3 +118,66 @@ def test_deal_creation_validates_payload(
     assert unsupported_stage.status_code == 422
     assert negative_value.status_code == 422
     assert db_session.query(DealRecord).count() == 0
+
+
+def test_update_deal_changes_only_stage_next_action_and_timestamp(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    deal = seed_deal(db_session)
+    original_updated_at = deal.updated_at
+
+    response = client.patch(
+        f"/api/v1/deals/{deal.id}",
+        json={"stage": "won", "next_action": "  Schedule project kickoff  "},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["business_id"] == "business-qualified"
+    assert payload["business_name"] == "Kildare Accountancy"
+    assert payload["title"] == "Website redesign opportunity"
+    assert payload["value_eur_cents"] == 350000
+    assert payload["stage"] == "won"
+    assert payload["next_action"] == "Schedule project kickoff"
+
+    db_session.refresh(deal)
+    assert deal.business_id == "business-qualified"
+    assert deal.title == "Website redesign opportunity"
+    assert deal.value_eur_cents == 350000
+    assert deal.stage == "won"
+    assert deal.next_action == "Schedule project kickoff"
+    assert deal.created_at == datetime(2026, 7, 25, 13, 0)
+    assert deal.updated_at > original_updated_at
+
+
+def test_update_deal_returns_404_for_unknown_deal(client: TestClient) -> None:
+    response = client.patch(
+        "/api/v1/deals/missing",
+        json={"stage": "won", "next_action": None},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Deal not found."}
+
+
+def test_update_deal_validates_stage_and_next_action(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    deal = seed_deal(db_session)
+
+    unsupported_stage = client.patch(
+        f"/api/v1/deals/{deal.id}",
+        json={"stage": "negotiation", "next_action": "Call client"},
+    )
+    oversized_action = client.patch(
+        f"/api/v1/deals/{deal.id}",
+        json={"stage": "won", "next_action": "x" * 1001},
+    )
+
+    assert unsupported_stage.status_code == 422
+    assert oversized_action.status_code == 422
+    db_session.refresh(deal)
+    assert deal.stage == "proposal"
+    assert deal.next_action == "Send proposal"
