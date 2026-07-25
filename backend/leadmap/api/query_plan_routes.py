@@ -19,7 +19,10 @@ from .schemas import AssistedSessionResponse
 
 router = APIRouter(prefix="/api/v1/discovery")
 SessionDependency = Annotated[Session, Depends(get_session)]
-ManagerDependency = Annotated[AssistedSessionManager, Depends(get_assisted_session_manager)]
+ManagerDependency = Annotated[
+    AssistedSessionManager,
+    Depends(get_assisted_session_manager),
+]
 
 
 class PreparedDiscoveryPlanCreate(BaseModel):
@@ -64,7 +67,10 @@ def _prepared_plan(
 
     territory = repository.get_territory(payload.territory_id)
     if territory is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Territory not found.",
+        )
 
     template = repository.get_query_template(payload.query_template_id)
     if template is None:
@@ -140,7 +146,10 @@ def launch_prepared_discovery_session(
             start_url=start_url,
         )
     except AssistedSessionConflict as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
