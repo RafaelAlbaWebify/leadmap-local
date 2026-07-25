@@ -107,7 +107,11 @@ export function QueryGroupReview({ reviews }: { reviews: AssistedSessionReview[]
       </div>
 
       {save.data && (
-        <div className="notice traversal-summary" aria-label="Aggregate save result">
+        <div
+          className="notice traversal-summary"
+          role="status"
+          aria-label="Aggregate save result"
+        >
           <strong>Included businesses saved</strong>
           <p>
             {save.data.businesses_created} created · {save.data.businesses_matched} matched · {save.data.observations_created} observations added · {save.data.observations_skipped} already saved
@@ -115,7 +119,7 @@ export function QueryGroupReview({ reviews }: { reviews: AssistedSessionReview[]
         </div>
       )}
       {save.isError && (
-        <div className="notice error" aria-label="Aggregate save error">
+        <div className="notice error" role="alert" aria-label="Aggregate save error">
           Saving failed. The aggregate review is still available; correct the issue and retry.
         </div>
       )}
