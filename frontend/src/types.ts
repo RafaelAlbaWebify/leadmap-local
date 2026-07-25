@@ -72,6 +72,13 @@ export interface BusinessQualificationResult {
   updated_at: string;
 }
 
+export interface BusinessNote {
+  id: string;
+  business_id: string;
+  content: string;
+  created_at: string;
+}
+
 export interface DashboardSummary {
   total_businesses: number;
   qualified_leads: number;
