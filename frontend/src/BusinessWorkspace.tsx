@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchBusinessDetail, updateBusinessQualification } from "./api";
-import type { BusinessDetail, Lead, QualificationStatus } from "./types";
+import {
+  createBusinessNote,
+  fetchBusinessDetail,
+  fetchBusinessNotes,
+  updateBusinessQualification
+} from "./api";
+import type { BusinessDetail, BusinessNote, Lead, QualificationStatus } from "./types";
 import "./businessWorkspace.css";
 
 const qualificationOptions: Array<{ value: QualificationStatus; label: string }> = [
@@ -16,6 +21,71 @@ const qualificationOptions: Array<{ value: QualificationStatus; label: string }>
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString();
+}
+
+function BusinessNotes({ businessId }: { businessId: string }) {
+  const queryClient = useQueryClient();
+  const [content, setContent] = useState("");
+  const notes = useQuery({
+    queryKey: ["business-notes", businessId],
+    queryFn: () => fetchBusinessNotes(businessId)
+  });
+  const createNote = useMutation({
+    mutationFn: () => createBusinessNote(businessId, content),
+    onSuccess: async (created) => {
+      queryClient.setQueryData<BusinessNote[]>(["business-notes", businessId], (current) => [
+        created,
+        ...(current ?? [])
+      ]);
+      setContent("");
+      await queryClient.invalidateQueries({ queryKey: ["business-notes", businessId] });
+    }
+  });
+  const canSubmit = content.trim().length > 0 && content.trim().length <= 4000;
+
+  return (
+    <section className="business-notes" aria-label="Business notes">
+      <div className="panel-heading">
+        <div>
+          <h3>Business notes</h3>
+          <p>Manual context for qualification and follow-up. Discovery evidence remains separate below.</p>
+        </div>
+      </div>
+      <label className="business-note-editor">
+        Add a note
+        <textarea
+          value={content}
+          maxLength={4000}
+          disabled={createNote.isPending}
+          placeholder="Record why this business was qualified, deferred, rejected or archived."
+          onChange={(event) => setContent(event.target.value)}
+        />
+        <span>{content.length} / 4000 characters</span>
+      </label>
+      <button
+        className="primary-action compact"
+        disabled={createNote.isPending || !canSubmit}
+        onClick={() => createNote.mutate()}
+      >
+        {createNote.isPending ? "Adding…" : "Add note"}
+      </button>
+      {createNote.isSuccess && <div className="notice success" role="status">Note added.</div>}
+      {createNote.isError && (
+        <div className="notice error" role="alert">Note could not be added. Your text is retained.</div>
+      )}
+      {notes.isPending && <div className="notice">Loading notes…</div>}
+      {notes.isError && <div className="notice error">Business notes could not be loaded.</div>}
+      {notes.data?.length === 0 && <div className="empty-state">No notes have been added yet.</div>}
+      <div className="business-note-list">
+        {notes.data?.map((note) => (
+          <article className="business-note" key={note.id}>
+            <p>{note.content}</p>
+            <small>{formatDate(note.created_at)}</small>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
@@ -113,6 +183,8 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
           </article>
         ))}
       </div>
+
+      <BusinessNotes businessId={detail.id} />
 
       <div className="business-observations">
         <div className="panel-heading">
