@@ -26,6 +26,7 @@ import {
 } from "./api";
 import { CandidateReview } from "./CandidateReview";
 import { GeographyWorkspace } from "./GeographyWorkspace";
+import { QueryGroupReview } from "./QueryGroupReview";
 import type { AssistedSession, AssistedSessionReview, Lead } from "./types";
 
 type View = "Markets" | "Discover" | "Businesses" | "Deals" | "Tasks" | "Insights" | "Territories";
@@ -113,6 +114,7 @@ export function App() {
   const [approvedQueryText, setApprovedQueryText] = useState("");
   const [currentQuerySequence, setCurrentQuerySequence] = useState(1);
   const [completedQuerySequences, setCompletedQuerySequences] = useState<number[]>([]);
+  const [completedReviews, setCompletedReviews] = useState<AssistedSessionReview[]>([]);
   const [assistedSession, setAssistedSession] = useState<AssistedSession | null>(null);
   const [review, setReview] = useState<AssistedSessionReview | null>(null);
   const [busyCandidateId, setBusyCandidateId] = useState<string | null>(null);
@@ -121,6 +123,19 @@ export function App() {
   const territories = useQuery({ queryKey: ["territories"], queryFn: fetchTerritories });
   const templates = useQuery({ queryKey: ["query-templates"], queryFn: fetchQueryTemplates });
   const leads = useQuery({ queryKey: ["leads"], queryFn: fetchLeads });
+
+  function retainCompletedReview(result: AssistedSessionReview) {
+    const sequence = result.traversal_progress?.query_sequence;
+    if (!sequence || !result.traversal_progress?.query_text.trim()) {
+      return;
+    }
+    setCompletedReviews((completed) => [
+      ...completed.filter((item) => item.traversal_progress?.query_sequence !== sequence),
+      result
+    ].sort((left, right) =>
+      (left.traversal_progress?.query_sequence ?? 0) - (right.traversal_progress?.query_sequence ?? 0)
+    ));
+  }
 
   const seed = useMutation({
     mutationFn: seedIreland,
@@ -139,6 +154,7 @@ export function App() {
       setCurrentQuerySequence(firstQuery.sequence);
       setApprovedQueryText(firstQuery.query_text);
       setCompletedQuerySequences([]);
+      setCompletedReviews([]);
       setAssistedSession(null);
       setReview(null);
     }
@@ -163,6 +179,7 @@ export function App() {
     onSuccess: (result) => {
       setAssistedSession(result);
       setReview(result);
+      retainCompletedReview(result);
       setCompletedQuerySequences((completed) =>
         completed.includes(currentQuerySequence) ? completed : [...completed, currentQuerySequence]
       );
@@ -175,6 +192,7 @@ export function App() {
     onSuccess: (result) => {
       setAssistedSession(result);
       setReview(result);
+      retainCompletedReview(result);
     },
     onSettled: () => setBusyCandidateId(null)
   });
@@ -214,6 +232,7 @@ export function App() {
     plan.reset();
     setCurrentQuerySequence(1);
     setCompletedQuerySequences([]);
+    setCompletedReviews([]);
     setAssistedSession(null);
     setReview(null);
   }
@@ -326,52 +345,55 @@ export function App() {
         )}
 
         {view === "Discover" && (
-          <section className="discovery-layout">
-            <article className="panel page-panel">
-              <div className="panel-heading"><div><h2>Prepare assisted session</h2><p>The visible browser opens only after explicit approval.</p></div></div>
-              <label>Territory<select value={territoryId} disabled={sessionActive} onChange={(event) => setTerritoryId(event.target.value)}><option value="">Select territory</option>{(territories.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label>Query group<select value={templateId} disabled={sessionActive} onChange={(event) => setTemplateId(event.target.value)}><option value="">Select query group</option>{Array.from(groupedTemplates.entries()).map(([sector, items]) => <optgroup key={sector} label={sector}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</select></label>
-              <button className="primary-action" disabled={!territoryId || !templateId || plan.isPending || sessionActive} onClick={() => plan.mutate()}>Preview search plan</button>
-            </article>
-            <article className="panel page-panel">
-              <div className="panel-heading"><div><h2>Plan preview</h2><p>Bounded and user-controlled</p></div></div>
-              {!plan.data && <div className="empty-state">Select a territory and query group.</div>}
-              {plan.data && <>
-                <h3>{plan.data.query_template_name} in {plan.data.territory_name}</h3>
-                <p className="body-copy">{plan.data.total_planned_queries} prepared queries · bounded result-panel traversal</p>
-                <ol className="query-checklist" aria-label="Prepared query checklist">
-                  {plan.data.prepared_queries.map((query) => {
-                    const state = completedQuerySequences.includes(query.sequence)
-                      ? "completed"
-                      : query.sequence === currentQuerySequence
-                        ? "current"
-                        : "pending";
-                    return <li className={state} key={query.sequence}><span>{query.sequence}</span><div><strong>{query.phrase}</strong><small>{state}</small></div></li>;
-                  })}
-                </ol>
-                <label>Current approved query
-                  <input value={approvedQueryText} disabled={assistedSession?.state === "capturing" || assistedSession?.state === "review"} onChange={(event) => setApprovedQueryText(event.target.value)} />
-                </label>
-                {currentPreparedQuery && <small className="form-hint">Query {currentPreparedQuery.sequence} of {plan.data.total_planned_queries}. Each query requires a separate operator-approved session.</small>}
-                {!assistedSession && <button className="primary-action full" disabled={launchSession.isPending} onClick={() => launchSession.mutate()}>{launchSession.isPending ? "Launching visible browser…" : `Launch query ${currentQuerySequence}`}</button>}
-                {assistedSession && <div className="notice">Session status: <strong>{assistedSession.state.replace("_", " ")}</strong>{assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the approved query, then confirm readiness here.</p>}</div>}
-                {assistedSession?.state === "awaiting_operator" && assistedSession.session_id && <button className="primary-action full" disabled={readySession.isPending} onClick={() => readySession.mutate(assistedSession.session_id!)}>Browser is ready</button>}
-                {assistedSession?.state === "ready" && assistedSession.session_id && <>
-                  <button className="primary-action full" disabled={!approvedQueryText.trim() || collectSession.isPending} onClick={() => collectSession.mutate(assistedSession.session_id!)}>{collectSession.isPending ? "Collecting bounded results…" : "Collect bounded results"}</button>
-                  <button className="secondary-action full" disabled={captureSession.isPending} onClick={() => captureSession.mutate(assistedSession.session_id!)}>{captureSession.isPending ? "Capturing visible results…" : "Capture currently visible only"}</button>
+          <>
+            <section className="discovery-layout">
+              <article className="panel page-panel">
+                <div className="panel-heading"><div><h2>Prepare assisted session</h2><p>The visible browser opens only after explicit approval.</p></div></div>
+                <label>Territory<select value={territoryId} disabled={sessionActive} onChange={(event) => setTerritoryId(event.target.value)}><option value="">Select territory</option>{(territories.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+                <label>Query group<select value={templateId} disabled={sessionActive} onChange={(event) => setTemplateId(event.target.value)}><option value="">Select query group</option>{Array.from(groupedTemplates.entries()).map(([sector, items]) => <optgroup key={sector} label={sector}>{items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>)}</select></label>
+                <button className="primary-action" disabled={!territoryId || !templateId || plan.isPending || sessionActive} onClick={() => plan.mutate()}>Preview search plan</button>
+              </article>
+              <article className="panel page-panel">
+                <div className="panel-heading"><div><h2>Plan preview</h2><p>Bounded and user-controlled</p></div></div>
+                {!plan.data && <div className="empty-state">Select a territory and query group.</div>}
+                {plan.data && <>
+                  <h3>{plan.data.query_template_name} in {plan.data.territory_name}</h3>
+                  <p className="body-copy">{plan.data.total_planned_queries} prepared queries · bounded result-panel traversal</p>
+                  <ol className="query-checklist" aria-label="Prepared query checklist">
+                    {plan.data.prepared_queries.map((query) => {
+                      const state = completedQuerySequences.includes(query.sequence)
+                        ? "completed"
+                        : query.sequence === currentQuerySequence
+                          ? "current"
+                          : "pending";
+                      return <li className={state} key={query.sequence}><span>{query.sequence}</span><div><strong>{query.phrase}</strong><small>{state}</small></div></li>;
+                    })}
+                  </ol>
+                  <label>Current approved query
+                    <input value={approvedQueryText} disabled={assistedSession?.state === "capturing" || assistedSession?.state === "review"} onChange={(event) => setApprovedQueryText(event.target.value)} />
+                  </label>
+                  {currentPreparedQuery && <small className="form-hint">Query {currentPreparedQuery.sequence} of {plan.data.total_planned_queries}. Each query requires a separate operator-approved session.</small>}
+                  {!assistedSession && <button className="primary-action full" disabled={launchSession.isPending} onClick={() => launchSession.mutate()}>{launchSession.isPending ? "Launching visible browser…" : `Launch query ${currentQuerySequence}`}</button>}
+                  {assistedSession && <div className="notice">Session status: <strong>{assistedSession.state.replace("_", " ")}</strong>{assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the approved query, then confirm readiness here.</p>}</div>}
+                  {assistedSession?.state === "awaiting_operator" && assistedSession.session_id && <button className="primary-action full" disabled={readySession.isPending} onClick={() => readySession.mutate(assistedSession.session_id!)}>Browser is ready</button>}
+                  {assistedSession?.state === "ready" && assistedSession.session_id && <>
+                    <button className="primary-action full" disabled={!approvedQueryText.trim() || collectSession.isPending} onClick={() => collectSession.mutate(assistedSession.session_id!)}>{collectSession.isPending ? "Collecting bounded results…" : "Collect bounded results"}</button>
+                    <button className="secondary-action full" disabled={captureSession.isPending} onClick={() => captureSession.mutate(assistedSession.session_id!)}>{captureSession.isPending ? "Capturing visible results…" : "Capture currently visible only"}</button>
+                  </>}
+                  {review?.traversal_progress && <div className="notice traversal-summary" aria-label="Traversal summary">
+                    <strong>{review.traversal_progress.unique_cards} unique cards collected</strong>
+                    <p>{review.traversal_progress.scroll_step} scroll steps · {review.traversal_progress.elapsed_seconds.toFixed(1)} seconds · stopped: {review.traversal_progress.stop_reason?.replaceAll("_", " ") ?? "unknown"}</p>
+                  </div>}
+                  {sessionActive && assistedSession?.session_id && <button className="secondary-action full" disabled={stopSession.isPending} onClick={() => stopSession.mutate(assistedSession.session_id!)}>Stop assisted session</button>}
+                  {assistedSession?.state === "stopped" && nextPreparedQuery && <button className="primary-action full" onClick={prepareNextQuery}>Prepare query {nextPreparedQuery.sequence}</button>}
+                  {assistedSession?.state === "stopped" && !nextPreparedQuery && completedQuerySequences.length === plan.data.total_planned_queries && <div className="notice traversal-summary"><strong>Query group complete</strong><p>All prepared queries were collected with explicit operator approval.</p></div>}
+                  {review && assistedSession?.state === "review" && assistedSession.session_id && <CandidateReview review={review} busyCandidateId={busyCandidateId} onToggle={(candidateId, included) => candidateReview.mutate({ sessionId: assistedSession.session_id!, candidateId, included })} />}
+                  {(launchSession.isError || readySession.isError || captureSession.isError || collectSession.isError || candidateReview.isError || stopSession.isError) && <div className="notice error">The assisted session action failed. Review the backend message and retry.</div>}
                 </>}
-                {review?.traversal_progress && <div className="notice traversal-summary" aria-label="Traversal summary">
-                  <strong>{review.traversal_progress.unique_cards} unique cards collected</strong>
-                  <p>{review.traversal_progress.scroll_step} scroll steps · {review.traversal_progress.elapsed_seconds.toFixed(1)} seconds · stopped: {review.traversal_progress.stop_reason?.replaceAll("_", " ") ?? "unknown"}</p>
-                </div>}
-                {sessionActive && assistedSession?.session_id && <button className="secondary-action full" disabled={stopSession.isPending} onClick={() => stopSession.mutate(assistedSession.session_id!)}>Stop assisted session</button>}
-                {assistedSession?.state === "stopped" && nextPreparedQuery && <button className="primary-action full" onClick={prepareNextQuery}>Prepare query {nextPreparedQuery.sequence}</button>}
-                {assistedSession?.state === "stopped" && !nextPreparedQuery && completedQuerySequences.length === plan.data.total_planned_queries && <div className="notice traversal-summary"><strong>Query group complete</strong><p>All prepared queries were collected with explicit operator approval.</p></div>}
-                {review && assistedSession?.state === "review" && assistedSession.session_id && <CandidateReview review={review} busyCandidateId={busyCandidateId} onToggle={(candidateId, included) => candidateReview.mutate({ sessionId: assistedSession.session_id!, candidateId, included })} />}
-                {(launchSession.isError || readySession.isError || captureSession.isError || collectSession.isError || candidateReview.isError || stopSession.isError) && <div className="notice error">The assisted session action failed. Review the backend message and retry.</div>}
-              </>}
-            </article>
-          </section>
+              </article>
+            </section>
+            <QueryGroupReview reviews={completedReviews} />
+          </>
         )}
 
         {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted observations</p></div></div><LeadTable leads={leads.data ?? []} /></section>}

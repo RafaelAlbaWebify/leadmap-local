@@ -35,7 +35,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: frontend
@@ -74,7 +74,9 @@ jobs:
           npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
       - name: Playwright screenshot review
-        run: node e2e/geography-screenshot-review.mjs
+        run: |
+          node e2e/geography-screenshot-review.mjs
+          node e2e/aggregate-query-review.mjs
       - name: Upload screenshot review
         if: always()
         uses: actions/upload-artifact@v4
@@ -85,7 +87,7 @@ jobs:
 
   frontend-windows:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: frontend
@@ -121,7 +123,9 @@ jobs:
           npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
           npx playwright install chromium
       - name: Windows Playwright acceptance
-        run: node e2e/geography-screenshot-review.mjs
+        run: |
+          node e2e/geography-screenshot-review.mjs
+          node e2e/aggregate-query-review.mjs
       - name: Upload Windows screenshots
         if: always()
         uses: actions/upload-artifact@v4
