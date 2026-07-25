@@ -7,6 +7,7 @@ import {
   fetchBusinessNotes,
   updateBusinessQualification
 } from "./api";
+import { BusinessDealCreate } from "./DealsWorkspace";
 import type { BusinessDetail, BusinessNote, Lead, QualificationStatus } from "./types";
 import "./businessWorkspace.css";
 
@@ -184,6 +185,11 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
           </article>
         ))}
       </div>
+
+      <BusinessDealCreate
+        businessId={detail.id}
+        qualificationStatus={detail.qualification_status}
+      />
 
       <BusinessNotes businessId={detail.id} />
 
