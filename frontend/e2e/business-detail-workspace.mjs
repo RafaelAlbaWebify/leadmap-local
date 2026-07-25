@@ -106,6 +106,12 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
   let qualificationStatus = "needs_review";
+  const notes = [{
+    id: "note-1",
+    business_id: "business-1",
+    content: "Reviewed public evidence before qualification.",
+    created_at: "2026-07-25T12:30:00Z"
+  }];
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
@@ -115,6 +121,7 @@ try {
     const request = route.request();
     const url = new URL(request.url());
     let payload;
+    let responseStatus = 200;
     if (url.pathname === "/api/v1/dashboard") {
       payload = {
         total_businesses: 1,
@@ -140,6 +147,28 @@ try {
         qualification_status: qualificationStatus,
         updated_at: "2026-07-25T13:00:00Z"
       };
+    } else if (
+      url.pathname === "/api/v1/businesses/business-1/notes"
+      && request.method() === "POST"
+    ) {
+      const body = JSON.parse(request.postData() ?? "{}");
+      if (body.content !== "Call next Tuesday after qualification review.") {
+        throw new Error("Business note did not submit the exact operator-entered text.");
+      }
+      const created = {
+        id: "note-2",
+        business_id: "business-1",
+        content: body.content,
+        created_at: "2026-07-25T13:05:00Z"
+      };
+      notes.unshift(created);
+      payload = created;
+      responseStatus = 201;
+    } else if (
+      url.pathname === "/api/v1/businesses/business-1/notes"
+      && request.method() === "GET"
+    ) {
+      payload = notes;
     } else if (url.pathname === "/api/v1/businesses/business-1") {
       payload = {
         ...detail,
@@ -158,7 +187,7 @@ try {
       await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ detail: "Not found" }) });
       return;
     }
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
+    await route.fulfill({ status: responseStatus, contentType: "application/json", body: JSON.stringify(payload) });
   });
 
   await page.goto("http://127.0.0.1:5173", { waitUntil: "networkidle" });
@@ -170,6 +199,7 @@ try {
   await workspace.getByRole("heading", { name: "Kildare Accountancy" }).waitFor();
   await workspace.getByText("+353 45 000 000").waitFor();
   await workspace.getByText("53.16, -6.91").waitFor();
+  await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
   await workspace.getByText("2 persisted discovery observations").waitFor();
   await workspace.getByText("tax advisor in Kildare County, IE").waitFor();
   await workspace.getByText("rank 3").waitFor();
@@ -179,11 +209,15 @@ try {
 
   await workspace.getByLabel("Status").selectOption("qualified");
   await workspace.getByRole("button", { name: "Save qualification" }).click();
-  await workspace.getByRole("status").waitFor();
   await workspace.getByText("Qualification saved as qualified.").waitFor();
-  await workspace.getByText("qualified", { exact: true }).first().waitFor();
+
+  await workspace.getByLabel("Add a note").fill("Call next Tuesday after qualification review.");
+  await workspace.getByRole("button", { name: "Add note" }).click();
+  await workspace.getByText("Note added.").waitFor();
+  await workspace.getByText("Call next Tuesday after qualification review.").waitFor();
+  await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
   await workspace.getByText("2 persisted discovery observations").waitFor();
-  await page.screenshot({ path: "artifacts/screenshots/business-qualified-workspace.png", fullPage: true });
+  await page.screenshot({ path: "artifacts/screenshots/business-notes-workspace.png", fullPage: true });
 
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
