@@ -102,6 +102,12 @@ def seed_business_detail(session: Session) -> BusinessRecord:
     return business
 
 
+def observation_evidence(
+    observations: list[ObservationRecord],
+) -> list[tuple[str, str | None, datetime]]:
+    return [(item.id, item.raw_payload_json, item.observed_at) for item in observations]
+
+
 def test_business_detail_returns_locations_and_ordered_observations(
     client: TestClient,
     db_session: Session,
@@ -160,8 +166,10 @@ def test_business_qualification_update_preserves_observations(
     db_session: Session,
 ) -> None:
     business = seed_business_detail(db_session)
-    before_observations = list(db_session.scalars(select(ObservationRecord).order_by(ObservationRecord.id)))
-    before_payloads = [(item.id, item.raw_payload_json, item.observed_at) for item in before_observations]
+    before_observations = list(
+        db_session.scalars(select(ObservationRecord).order_by(ObservationRecord.id))
+    )
+    before_payloads = observation_evidence(before_observations)
 
     response = client.patch(
         f"/api/v1/businesses/{business.id}/qualification",
@@ -172,8 +180,10 @@ def test_business_qualification_update_preserves_observations(
     assert response.json()["qualification_status"] == "qualified"
     db_session.refresh(business)
     assert business.qualification_status == "qualified"
-    after_observations = list(db_session.scalars(select(ObservationRecord).order_by(ObservationRecord.id)))
-    assert [(item.id, item.raw_payload_json, item.observed_at) for item in after_observations] == before_payloads
+    after_observations = list(
+        db_session.scalars(select(ObservationRecord).order_by(ObservationRecord.id))
+    )
+    assert observation_evidence(after_observations) == before_payloads
 
 
 def test_business_qualification_rejects_unknown_status(
