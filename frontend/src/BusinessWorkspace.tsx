@@ -51,9 +51,10 @@ function BusinessNotes({ businessId }: { businessId: string }) {
           <p>Manual context for qualification and follow-up. Discovery evidence remains separate below.</p>
         </div>
       </div>
-      <label className="business-note-editor">
-        Add a note
+      <div className="business-note-editor">
+        <label htmlFor="business-note-content">Add a note</label>
         <textarea
+          id="business-note-content"
           value={content}
           maxLength={4000}
           disabled={createNote.isPending}
@@ -61,7 +62,7 @@ function BusinessNotes({ businessId }: { businessId: string }) {
           onChange={(event) => setContent(event.target.value)}
         />
         <span>{content.length} / 4000 characters</span>
-      </label>
+      </div>
       <button
         className="primary-action compact"
         disabled={createNote.isPending || !canSubmit}
