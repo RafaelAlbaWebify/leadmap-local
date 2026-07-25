@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -62,6 +62,10 @@ class BusinessRecord(Base):
         back_populates="business",
         cascade="all, delete-orphan",
     )
+    deals: Mapped[list["DealRecord"]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+    )
 
 
 class BusinessNoteRecord(Base):
@@ -75,6 +79,26 @@ class BusinessNoteRecord(Base):
     business: Mapped[BusinessRecord] = relationship(back_populates="notes")
 
     __table_args__ = (Index("ix_business_note_business_created", "business_id", "created_at"),)
+
+
+class DealRecord(Base):
+    __tablename__ = "deals"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    stage: Mapped[str] = mapped_column(String(40), nullable=False)
+    value_eur_cents: Mapped[int | None] = mapped_column(Integer)
+    next_action: Mapped[str | None] = mapped_column(String(1000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    business: Mapped[BusinessRecord] = relationship(back_populates="deals")
+
+    __table_args__ = (
+        Index("ix_deal_stage_updated", "stage", "updated_at"),
+        Index("ix_deal_business_created", "business_id", "created_at"),
+    )
 
 
 class BusinessLocationRecord(Base):
