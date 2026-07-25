@@ -95,6 +95,7 @@ jobs:
         run: |
           node e2e/geography-screenshot-review.mjs
           node e2e/aggregate-query-review.mjs
+          node e2e/business-detail-workspace.mjs
       - name: Upload screenshot review
         if: always()
         uses: actions/upload-artifact@v4
@@ -144,6 +145,7 @@ jobs:
         run: |
           node e2e/geography-screenshot-review.mjs
           node e2e/aggregate-query-review.mjs
+          node e2e/business-detail-workspace.mjs
       - name: Upload Windows screenshots
         if: always()
         uses: actions/upload-artifact@v4
