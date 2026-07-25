@@ -24,6 +24,7 @@ import {
   stopAssistedSession,
   updateCandidateReview
 } from "./api";
+import { BusinessWorkspace } from "./BusinessWorkspace";
 import { CandidateReview } from "./CandidateReview";
 import { GeographyWorkspace } from "./GeographyWorkspace";
 import { QueryGroupReview } from "./QueryGroupReview";
@@ -69,28 +70,7 @@ function MetricCard({ label, value, hint }: { label: string; value: number; hint
 }
 
 function LeadTable({ leads }: { leads: Lead[] }) {
-  return (
-    <div className="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Business</th><th>Category</th><th>Area</th><th>Observed</th><th>Freshness</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          {leads.map((lead) => (
-            <tr key={`${lead.id}-${lead.last_observed_at}`}>
-              <td><strong>{lead.name}</strong><small>{lead.website ?? "No website captured"}</small></td>
-              <td>{lead.category}</td>
-              <td>{lead.locality}{lead.postal_area ? ` · ${lead.postal_area}` : ""}</td>
-              <td>{new Date(lead.last_observed_at).toLocaleDateString()}</td>
-              <td><span className={`badge ${lead.freshness}`}>{lead.freshness.replace("_", " ")}</span></td>
-              <td><span className="badge neutral">{lead.qualification_status.replace("_", " ")}</span></td>
-            </tr>
-          ))}
-          {leads.length === 0 && <tr><td colSpan={6} className="empty-state">No persisted businesses yet.</td></tr>}
-        </tbody>
-      </table>
-    </div>
-  );
+  return <BusinessWorkspace leads={leads} />;
 }
 
 function PlaceholderPage({ title, description }: { title: string; description: string }) {
