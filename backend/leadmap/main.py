@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from .api.aggregate_routes import router as aggregate_router
+from .api.business_routes import router as business_router
 from .api.capture_routes import router as capture_router
 from .api.geography_routes import router as geography_router
 from .api.query_plan_routes import router as query_plan_router
@@ -27,4 +28,5 @@ app.include_router(router)
 app.include_router(query_plan_router)
 app.include_router(capture_router)
 app.include_router(aggregate_router)
+app.include_router(business_router)
 app.include_router(geography_router)
