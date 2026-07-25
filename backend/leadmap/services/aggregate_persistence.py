@@ -176,11 +176,12 @@ def _latest_observation(
     provider: str,
     provider_key: str,
 ) -> ObservationRecord | None:
+    business_loader = selectinload(ObservationRecord.location).selectinload(
+        BusinessLocationRecord.business
+    )
     return session.scalar(
         select(ObservationRecord)
-        .options(
-            selectinload(ObservationRecord.location).selectinload(BusinessLocationRecord.business)
-        )
+        .options(business_loader)
         .where(
             ObservationRecord.provider == provider,
             ObservationRecord.provider_key == provider_key,
@@ -259,9 +260,12 @@ def _get_or_create_run(
         session.add(run)
         return run
 
-    conflicts = existing.territory_id != territory.id or existing.query_text != observation.query_text
-    if conflicts:
-        raise ValueError("Batch query sequence conflicts with an existing persisted search run.")
+    same_territory = existing.territory_id == territory.id
+    same_query = existing.query_text == observation.query_text
+    if not same_territory or not same_query:
+        raise ValueError(
+            "Batch query sequence conflicts with an existing persisted search run."
+        )
     return existing
 
 
