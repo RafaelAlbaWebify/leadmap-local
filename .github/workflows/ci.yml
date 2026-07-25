@@ -27,29 +27,11 @@ jobs:
       - name: Ruff
         run: ruff check .
       - name: Format check
-        run: |
-          set -o pipefail
-          ruff format --check --diff . 2>&1 | tee business-detail-format.txt
-      - name: Upload format report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: business-detail-format
-          path: business-detail-format.txt
-          if-no-files-found: error
+        run: ruff format --check .
       - name: Type check
         run: mypy
       - name: Tests
-        run: |
-          set -o pipefail
-          pytest 2>&1 | tee business-detail-pytest.txt
-      - name: Upload pytest report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: business-detail-pytest
-          path: business-detail-pytest.txt
-          if-no-files-found: error
+        run: pytest
 
   frontend:
     runs-on: ubuntu-latest
