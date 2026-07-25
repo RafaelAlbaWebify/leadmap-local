@@ -31,14 +31,7 @@ jobs:
       - name: Type check
         run: mypy
       - name: Tests
-        run: pytest 2>&1 | tee pytest-report.txt
-      - name: Upload pytest report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytest-report
-          path: pytest-report.txt
-          if-no-files-found: error
+        run: pytest
 
   frontend:
     runs-on: ubuntu-latest
@@ -73,16 +66,7 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Test
-        run: |
-          set -o pipefail
-          npm run test 2>&1 | tee vitest-report.txt
-      - name: Upload Vitest report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vitest-report
-          path: frontend/vitest-report.txt
-          if-no-files-found: error
+        run: npm run test
       - name: Build
         run: npm run build
       - name: Install Playwright
