@@ -3,11 +3,11 @@ import type { AssistedSessionReview } from "./types";
 import "./queryGroupAggregate.css";
 
 export function QueryGroupReview({ reviews }: { reviews: AssistedSessionReview[] }) {
-  const aggregate = aggregateQueryReviews(reviews);
-
-  if (reviews.length === 0) {
+  if (reviews.length < 2) {
     return null;
   }
+
+  const aggregate = aggregateQueryReviews(reviews);
 
   return (
     <section className="aggregate-review" aria-label="Aggregate business review">
