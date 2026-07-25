@@ -176,9 +176,8 @@ def _latest_observation(
     provider: str,
     provider_key: str,
 ) -> ObservationRecord | None:
-    business_loader = selectinload(ObservationRecord.location).selectinload(
-        BusinessLocationRecord.business
-    )
+    location_loader = selectinload(ObservationRecord.location)
+    business_loader = location_loader.selectinload(BusinessLocationRecord.business)
     return session.scalar(
         select(ObservationRecord)
         .options(business_loader)
@@ -263,9 +262,8 @@ def _get_or_create_run(
     same_territory = existing.territory_id == territory.id
     same_query = existing.query_text == observation.query_text
     if not same_territory or not same_query:
-        raise ValueError(
-            "Batch query sequence conflicts with an existing persisted search run."
-        )
+        message = "Batch query sequence conflicts with an existing persisted search run."
+        raise ValueError(message)
     return existing
 
 
