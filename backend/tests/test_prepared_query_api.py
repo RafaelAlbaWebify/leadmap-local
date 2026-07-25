@@ -23,8 +23,8 @@ class FakeProvider:
 @pytest.fixture
 def prepared_client(client: TestClient) -> Iterator[tuple[TestClient, FakeProvider]]:
     provider = FakeProvider()
-    app.dependency_overrides[get_assisted_session_manager] = lambda: (
-        AssistedSessionManager(provider)
+    app.dependency_overrides[get_assisted_session_manager] = lambda: AssistedSessionManager(
+        provider
     )
     yield client, provider
 
