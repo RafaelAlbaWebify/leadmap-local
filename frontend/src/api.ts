@@ -4,11 +4,13 @@ import type {
   AssistedSession,
   AssistedSessionReview,
   BusinessDetail,
+  BusinessQualificationResult,
   DashboardSummary,
   DiscoveryPlan,
   GeographyArtifact,
   GeographyArtifactSummary,
   Lead,
+  QualificationStatus,
   QueryTemplate,
   SeedResult,
   Territory,
@@ -43,6 +45,17 @@ export function fetchLeads(): Promise<Lead[]> {
 
 export function fetchBusinessDetail(businessId: string): Promise<BusinessDetail> {
   return requestJson(`/api/v1/businesses/${businessId}`);
+}
+
+export function updateBusinessQualification(
+  businessId: string,
+  qualificationStatus: QualificationStatus
+): Promise<BusinessQualificationResult> {
+  return requestJson(`/api/v1/businesses/${businessId}/qualification`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ qualification_status: qualificationStatus })
+  });
 }
 
 export function fetchGeographyArtifacts(): Promise<GeographyArtifactSummary[]> {
