@@ -40,7 +40,16 @@ jobs:
       - name: Type check
         run: mypy
       - name: Tests
-        run: pytest
+        run: |
+          set -o pipefail
+          pytest 2>&1 | tee business-detail-pytest.txt
+      - name: Upload pytest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: business-detail-pytest
+          path: business-detail-pytest.txt
+          if-no-files-found: error
 
   frontend:
     runs-on: ubuntu-latest
