@@ -1,4 +1,5 @@
 import type {
+  AggregateBatchSave,
   AssistedSessionReview,
   TraversalStopReason,
   VisibleCandidate
@@ -8,9 +9,12 @@ export interface QueryAppearance {
   queryText: string;
   querySequence: number;
   resultRank: number;
+  firstSeenScrollStep: number;
+  capturedAt: string;
   included: boolean;
   candidateId: string;
   sourceUrl: string | null;
+  rawEvidence: string | null;
 }
 
 export interface AggregateBusinessReview {
@@ -109,6 +113,45 @@ export function aggregateQueryReviews(reviews: AssistedSessionReview[]): QueryGr
   };
 }
 
+export function buildAggregateSavePayload(
+  reviews: AssistedSessionReview[],
+  batchId: string,
+  territoryId: string,
+  queryTemplateId: string
+): AggregateBatchSave {
+  const aggregate = aggregateQueryReviews(reviews);
+  if (!batchId.trim() || !territoryId.trim() || !queryTemplateId.trim()) {
+    throw new Error("Aggregate persistence requires a batch, territory, and query template.");
+  }
+  return {
+    batch_id: batchId,
+    territory_id: territoryId,
+    query_template_id: queryTemplateId,
+    businesses: aggregate.businesses.map((business) => ({
+      displayed_name: business.representative.displayed_name,
+      normalized_name: business.representative.normalized_name,
+      category: business.representative.category,
+      address_text: business.representative.address_text,
+      phone: business.representative.phone,
+      website: business.representative.website,
+      latitude: business.representative.latitude,
+      longitude: business.representative.longitude,
+      provider_key: business.representative.provider_key,
+      included: business.included,
+      observations: business.appearances.map((appearance) => ({
+        query_text: appearance.queryText,
+        query_sequence: appearance.querySequence,
+        result_rank: appearance.resultRank,
+        first_seen_scroll_step: appearance.firstSeenScrollStep,
+        captured_at: appearance.capturedAt,
+        source_url: appearance.sourceUrl,
+        raw_evidence: appearance.rawEvidence,
+        candidate_id: appearance.candidateId
+      }))
+    }))
+  };
+}
+
 function requiredQuerySequence(review: AssistedSessionReview): number {
   const sequence = review.traversal_progress?.query_sequence;
   if (!sequence || sequence < 1) {
@@ -128,13 +171,22 @@ function toAppearance(
   if (!candidate.result_rank || candidate.result_rank < 1) {
     throw new Error("Candidate result rank must be a positive number.");
   }
+  if (candidate.first_seen_scroll_step === null || candidate.first_seen_scroll_step === undefined) {
+    throw new Error("Candidate first-seen scroll step is required for persistence.");
+  }
+  if (!candidate.captured_at) {
+    throw new Error("Candidate capture timestamp is required for persistence.");
+  }
   return {
     queryText: candidate.query_text?.trim() || queryText,
     querySequence,
     resultRank: candidate.result_rank,
+    firstSeenScrollStep: candidate.first_seen_scroll_step,
+    capturedAt: candidate.captured_at,
     included: candidate.included,
     candidateId: candidate.candidate_id,
-    sourceUrl: candidate.source_url
+    sourceUrl: candidate.source_url,
+    rawEvidence: candidate.raw_evidence
   };
 }
 
