@@ -4,6 +4,7 @@ import type {
   AssistedSession,
   AssistedSessionReview,
   BusinessDetail,
+  BusinessNote,
   BusinessQualificationResult,
   DashboardSummary,
   DiscoveryPlan,
@@ -55,6 +56,18 @@ export function updateBusinessQualification(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ qualification_status: qualificationStatus })
+  });
+}
+
+export function fetchBusinessNotes(businessId: string): Promise<BusinessNote[]> {
+  return requestJson(`/api/v1/businesses/${businessId}/notes`);
+}
+
+export function createBusinessNote(businessId: string, content: string): Promise<BusinessNote> {
+  return requestJson(`/api/v1/businesses/${businessId}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content })
   });
 }
 

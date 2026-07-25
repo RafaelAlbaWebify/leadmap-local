@@ -2,16 +2,25 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fetchBusinessDetail, updateBusinessQualification } from "./api";
+import {
+  createBusinessNote,
+  fetchBusinessDetail,
+  fetchBusinessNotes,
+  updateBusinessQualification
+} from "./api";
 import { BusinessWorkspace } from "./BusinessWorkspace";
 import type { BusinessDetail, Lead } from "./types";
 
 vi.mock("./api", () => ({
+  createBusinessNote: vi.fn(),
   fetchBusinessDetail: vi.fn(),
+  fetchBusinessNotes: vi.fn(),
   updateBusinessQualification: vi.fn()
 }));
 
+const mockedCreateNote = vi.mocked(createBusinessNote);
 const mockedFetchDetail = vi.mocked(fetchBusinessDetail);
+const mockedFetchNotes = vi.mocked(fetchBusinessNotes);
 const mockedUpdateQualification = vi.mocked(updateBusinessQualification);
 
 const leads: Lead[] = [
@@ -114,8 +123,11 @@ async function openBusiness() {
 
 describe("BusinessWorkspace", () => {
   beforeEach(() => {
+    mockedCreateNote.mockReset();
     mockedFetchDetail.mockReset();
+    mockedFetchNotes.mockReset();
     mockedUpdateQualification.mockReset();
+    mockedFetchNotes.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -136,6 +148,50 @@ describe("BusinessWorkspace", () => {
     expect(within(workspace).getByText("accountant in Kildare County, IE")).toBeInTheDocument();
     expect(within(workspace).getByText("rank 2")).toBeInTheDocument();
     expect(within(workspace).getAllByRole("link", { name: "Open source evidence" })).toHaveLength(2);
+  });
+
+  it("adds a note and clears the editor only after success", async () => {
+    mockedFetchDetail.mockResolvedValue(detail);
+    mockedFetchNotes.mockResolvedValue([
+      {
+        id: "note-1",
+        business_id: "business-1",
+        content: "Reviewed before qualification.",
+        created_at: "2026-07-25T11:00:00Z"
+      }
+    ]);
+    mockedCreateNote.mockResolvedValue({
+      id: "note-2",
+      business_id: "business-1",
+      content: "Call next Tuesday.",
+      created_at: "2026-07-25T13:00:00Z"
+    });
+    renderWorkspace();
+    const workspace = await openBusiness();
+    const editor = await within(workspace).findByLabelText("Add a note");
+
+    fireEvent.change(editor, { target: { value: "Call next Tuesday." } });
+    fireEvent.click(within(workspace).getByRole("button", { name: "Add note" }));
+
+    await waitFor(() => expect(mockedCreateNote).toHaveBeenCalledWith("business-1", "Call next Tuesday."));
+    expect(await within(workspace).findByText("Note added.")).toBeInTheDocument();
+    expect(editor).toHaveValue("");
+  });
+
+  it("retains note text when creation fails", async () => {
+    mockedFetchDetail.mockResolvedValue(detail);
+    mockedCreateNote.mockRejectedValue(new Error("save failed"));
+    renderWorkspace();
+    const workspace = await openBusiness();
+    const editor = await within(workspace).findByLabelText("Add a note");
+
+    fireEvent.change(editor, { target: { value: "Keep this text" } });
+    fireEvent.click(within(workspace).getByRole("button", { name: "Add note" }));
+
+    expect(await within(workspace).findByRole("alert")).toHaveTextContent(
+      "Note could not be added. Your text is retained."
+    );
+    expect(editor).toHaveValue("Keep this text");
   });
 
   it("saves an explicit qualification change", async () => {
