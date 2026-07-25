@@ -1,4 +1,6 @@
 import type {
+  AggregateBatchSave,
+  AggregateSaveResult,
   AssistedSession,
   AssistedSessionReview,
   DashboardSummary,
@@ -143,4 +145,12 @@ export function updateCandidateReview(
 
 export function stopAssistedSession(sessionId: string): Promise<AssistedSession> {
   return requestJson(`/api/v1/discovery/session/${sessionId}`, { method: "DELETE" });
+}
+
+export function saveAggregateBusinesses(payload: AggregateBatchSave): Promise<AggregateSaveResult> {
+  return requestJson("/api/v1/discovery/aggregate-businesses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
 }

@@ -1,8 +1,43 @@
-import { aggregateQueryReviews } from "./queryGroupAggregate";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { saveAggregateBusinesses } from "./api";
+import { aggregateQueryReviews, buildAggregateSavePayload } from "./queryGroupAggregate";
 import type { AssistedSessionReview } from "./types";
 import "./queryGroupAggregate.css";
 
+function batchIdForReviews(reviews: AssistedSessionReview[]): string {
+  const sessionIds = reviews.map((review) => review.session_id).filter(Boolean);
+  if (sessionIds.length !== reviews.length) {
+    throw new Error("Every completed query review requires a session ID before saving.");
+  }
+  return `query-group:${sessionIds.join(":")}`;
+}
+
 export function QueryGroupReview({ reviews }: { reviews: AssistedSessionReview[] }) {
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: () => {
+      const firstReview = reviews[0];
+      if (!firstReview.territory_id || !firstReview.query_template_id) {
+        throw new Error("Completed reviews require territory and query-template identity.");
+      }
+      return saveAggregateBusinesses(
+        buildAggregateSavePayload(
+          reviews,
+          batchIdForReviews(reviews),
+          firstReview.territory_id,
+          firstReview.query_template_id
+        )
+      );
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["leads"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] })
+      ]);
+    }
+  });
+
   if (reviews.length < 2) {
     return null;
   }
@@ -56,6 +91,38 @@ export function QueryGroupReview({ reviews }: { reviews: AssistedSessionReview[]
           </article>
         ))}
       </div>
+
+      <div className="aggregate-save" aria-label="Aggregate save controls">
+        <div>
+          <strong>Save approved businesses</strong>
+          <p>Only included businesses will be persisted. Repeating this save is idempotent.</p>
+        </div>
+        <button
+          className="primary-action"
+          disabled={save.isPending || aggregate.includedBusinesses === 0}
+          onClick={() => save.mutate()}
+        >
+          {save.isPending ? "Saving included businesses…" : "Save included businesses"}
+        </button>
+      </div>
+
+      {save.data && (
+        <div
+          className="notice traversal-summary"
+          role="status"
+          aria-label="Aggregate save result"
+        >
+          <strong>Included businesses saved</strong>
+          <p>
+            {save.data.businesses_created} created · {save.data.businesses_matched} matched · {save.data.observations_created} observations added · {save.data.observations_skipped} already saved
+          </p>
+        </div>
+      )}
+      {save.isError && (
+        <div className="notice error" role="alert" aria-label="Aggregate save error">
+          Saving failed. The aggregate review is still available; correct the issue and retry.
+        </div>
+      )}
     </section>
   );
 }

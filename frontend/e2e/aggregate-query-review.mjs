@@ -28,7 +28,7 @@ function queryText(sequence) {
 
 function session(state, sequence) {
   return {
-    session_id: state === "stopped" ? "session-aggregate" : "session-aggregate",
+    session_id: "session-aggregate",
     state,
     territory_id: "territory-kildare",
     query_template_id: "template-accountancy",
@@ -165,6 +165,30 @@ try {
       payload = boundedReview(currentSequence);
     } else if (path === "/api/v1/discovery/session/session-aggregate" && method === "DELETE") {
       payload = session("stopped", currentSequence);
+    } else if (path === "/api/v1/discovery/aggregate-businesses" && method === "POST") {
+      const body = JSON.parse(request.postData() ?? "{}");
+      const observationCount = body.businesses.reduce(
+        (total, business) => total + business.observations.length,
+        0
+      );
+      if (body.territory_id !== "territory-kildare" || body.query_template_id !== "template-accountancy") {
+        throw new Error("Aggregate save lost territory or query-template identity.");
+      }
+      if (body.businesses.length !== 3 || observationCount !== 4) {
+        throw new Error("Aggregate save did not preserve three businesses and four observations.");
+      }
+      const repeated = body.businesses.find((business) => business.provider_key === "place-1");
+      const ranks = repeated?.observations.map((observation) => observation.result_rank);
+      if (JSON.stringify(ranks) !== JSON.stringify([1, 3])) {
+        throw new Error("Aggregate save lost repeated-business rank provenance.");
+      }
+      payload = {
+        businesses_created: 3,
+        businesses_matched: 0,
+        observations_created: 4,
+        observations_skipped: 0,
+        businesses_skipped: 0
+      };
     }
 
     if (payload === undefined) {
@@ -202,7 +226,12 @@ try {
   await repeated.getByText("rank 1").waitFor();
   await repeated.getByText("Q2").waitFor();
   await repeated.getByText("rank 3").waitFor();
-  await page.screenshot({ path: "artifacts/screenshots/discover-aggregate-query-review.png", fullPage: true });
+
+  await aggregate.getByRole("button", { name: "Save included businesses" }).click();
+  const saveResult = aggregate.getByRole("status", { name: "Aggregate save result" });
+  await saveResult.waitFor();
+  await saveResult.getByText("3 created · 0 matched · 4 observations added · 0 already saved").waitFor();
+  await page.screenshot({ path: "artifacts/screenshots/discover-aggregate-persisted.png", fullPage: true });
 
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
