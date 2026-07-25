@@ -77,7 +77,7 @@ export function createDiscoveryPlan(
   territoryId: string,
   queryTemplateId: string
 ): Promise<DiscoveryPlan> {
-  return requestJson("/api/v1/discovery/plan", {
+  return requestJson("/api/v1/discovery/prepared-plan", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -90,15 +90,17 @@ export function createDiscoveryPlan(
 
 export function launchAssistedSession(
   territoryId: string,
-  queryTemplateId: string
+  queryTemplateId: string,
+  querySequence: number
 ): Promise<AssistedSession> {
-  return requestJson("/api/v1/discovery/session", {
+  return requestJson("/api/v1/discovery/prepared-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       territory_id: territoryId,
       query_template_id: queryTemplateId,
-      max_results_per_query: 20
+      max_results_per_query: 20,
+      query_sequence: querySequence
     })
   });
 }
