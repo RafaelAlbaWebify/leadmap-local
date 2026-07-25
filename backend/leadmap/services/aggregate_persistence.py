@@ -162,9 +162,11 @@ def _provider_identity_key(item: AggregateBusinessInput) -> str:
     )
     if not normalized_name or not discriminator:
         raise AggregateIdentityError(
-            "A business without a provider key requires a normalized name and stable phone, website, or address."
+            "A business without a provider key requires a normalized name and "
+            "stable phone, website, or address."
         )
-    digest = hashlib.sha256(f"{normalized_name}|{discriminator}".encode()).hexdigest()
+    identity = f"{normalized_name}|{discriminator}".encode("utf-8")
+    digest = hashlib.sha256(identity, usedforsecurity=False).hexdigest()
     return f"fallback:{digest}"
 
 
@@ -242,11 +244,18 @@ def _get_or_create_run(
     provider: str,
     observation: AggregateObservationInput,
 ) -> SearchRunRecord:
-    run_id = str(uuid5(NAMESPACE_URL, f"leadmap:{batch_id}:query:{observation.query_sequence}"))
+    run_key = f"leadmap:{batch_id}:query:{observation.query_sequence}"
+    run_id = str(uuid5(NAMESPACE_URL, run_key))
     existing = session.get(SearchRunRecord, run_id)
     if existing is not None:
-        if existing.territory_id != territory.id or existing.query_text != observation.query_text:
-            raise ValueError("Batch query sequence conflicts with an existing persisted search run.")
+        conflicts = (
+            existing.territory_id != territory.id
+            or existing.query_text != observation.query_text
+        )
+        if conflicts:
+            raise ValueError(
+                "Batch query sequence conflicts with an existing persisted search run."
+            )
         return existing
 
     captured_at = _as_utc(observation.captured_at)
