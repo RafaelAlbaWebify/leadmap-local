@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.leadmap.persistence.models import (
     BusinessLocationRecord,
+    BusinessNoteRecord,
     BusinessRecord,
     ObservationRecord,
     SearchRunRecord,
@@ -210,6 +211,93 @@ def test_business_qualification_returns_404_for_unknown_business(client: TestCli
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Business not found."}
+
+
+def test_business_notes_are_created_trimmed_and_listed_newest_first(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    business = seed_business_detail(db_session)
+    older = BusinessNoteRecord(
+        id="note-older",
+        business_id=business.id,
+        content="Older context",
+        created_at=datetime(2026, 7, 24, 9, 0, tzinfo=UTC),
+    )
+    db_session.add(older)
+    db_session.commit()
+
+    create_response = client.post(
+        f"/api/v1/businesses/{business.id}/notes",
+        json={"content": "  Follow up after qualification review.  "},
+    )
+
+    assert create_response.status_code == 201
+    created = create_response.json()
+    assert created["business_id"] == business.id
+    assert created["content"] == "Follow up after qualification review."
+
+    list_response = client.get(f"/api/v1/businesses/{business.id}/notes")
+    assert list_response.status_code == 200
+    notes = list_response.json()
+    assert [note["content"] for note in notes] == [
+        "Follow up after qualification review.",
+        "Older context",
+    ]
+
+
+def test_business_note_creation_preserves_observations(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    business = seed_business_detail(db_session)
+    before = observation_evidence(
+        list(db_session.scalars(select(ObservationRecord).order_by(ObservationRecord.id)))
+    )
+
+    response = client.post(
+        f"/api/v1/businesses/{business.id}/notes",
+        json={"content": "Evidence reviewed manually."},
+    )
+
+    assert response.status_code == 201
+    after = observation_evidence(
+        list(db_session.scalars(select(ObservationRecord).order_by(ObservationRecord.id)))
+    )
+    assert after == before
+
+
+def test_business_note_rejects_blank_and_oversized_content(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    business = seed_business_detail(db_session)
+
+    blank = client.post(
+        f"/api/v1/businesses/{business.id}/notes",
+        json={"content": "   \n\t  "},
+    )
+    oversized = client.post(
+        f"/api/v1/businesses/{business.id}/notes",
+        json={"content": "x" * 4001},
+    )
+
+    assert blank.status_code == 422
+    assert oversized.status_code == 422
+    assert list(db_session.scalars(select(BusinessNoteRecord))) == []
+
+
+def test_business_notes_return_404_for_unknown_business(client: TestClient) -> None:
+    list_response = client.get("/api/v1/businesses/missing/notes")
+    create_response = client.post(
+        "/api/v1/businesses/missing/notes",
+        json={"content": "Not persisted"},
+    )
+
+    assert list_response.status_code == 404
+    assert create_response.status_code == 404
+    assert list_response.json() == {"detail": "Business not found."}
+    assert create_response.json() == {"detail": "Business not found."}
 
 
 def test_business_detail_returns_404_for_unknown_business(client: TestClient) -> None:
