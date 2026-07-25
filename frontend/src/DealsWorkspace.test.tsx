@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BusinessDealCreate, DealsWorkspace } from "./DealsWorkspace";
 
-function renderWithClient(ui: React.ReactNode) {
+function renderWithClient(ui: ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
