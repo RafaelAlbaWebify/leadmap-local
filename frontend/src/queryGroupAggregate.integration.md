@@ -1,1 +1,0 @@
-Integration boundary: App will retain one immutable completed review per query sequence and pass that array to `QueryGroupReview`. The pure aggregator rejects duplicates and incomplete provenance before rendering.
