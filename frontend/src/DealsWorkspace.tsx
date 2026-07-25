@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createDeal, fetchDeals, type DealStage } from "./dealApi";
+import { createDeal, fetchDeals, updateDeal, type Deal, type DealStage } from "./dealApi";
 import "./dealsWorkspace.css";
 
 const stageOptions: Array<{ value: DealStage; label: string }> = [
@@ -82,6 +82,56 @@ export function BusinessDealCreate({
   );
 }
 
+function DealCard({ deal }: { deal: Deal }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [stage, setStage] = useState<DealStage>(deal.stage);
+  const [nextAction, setNextAction] = useState(deal.next_action ?? "");
+  const mutation = useMutation({
+    mutationFn: () => updateDeal(deal.id, {
+      stage,
+      next_action: nextAction.trim() || null
+    }),
+    onSuccess: async (updated) => {
+      queryClient.setQueryData<Deal[]>(["deals"], (current) =>
+        current?.map((item) => item.id === updated.id ? updated : item) ?? [updated]
+      );
+      setEditing(false);
+      await queryClient.invalidateQueries({ queryKey: ["deals"] });
+    }
+  });
+
+  function cancelEditing() {
+    setStage(deal.stage);
+    setNextAction(deal.next_action ?? "");
+    setEditing(false);
+    mutation.reset();
+  }
+
+  return (
+    <article className="deal-card">
+      <strong>{deal.title}</strong>
+      <p>{deal.business_name}</p>
+      <span>{formatMoney(deal.value_eur_cents)}</span>
+      {!editing && <small>{deal.next_action ?? "No next action"}</small>}
+      {!editing && (
+        <button className="secondary-action compact" onClick={() => setEditing(true)}>Edit deal</button>
+      )}
+      {editing && (
+        <div className="deal-edit" aria-label={`Edit ${deal.title}`}>
+          <label>Stage<select value={stage} disabled={mutation.isPending} onChange={(event) => setStage(event.target.value as DealStage)}>{stageOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label>Next action<input value={nextAction} maxLength={1000} disabled={mutation.isPending} onChange={(event) => setNextAction(event.target.value)} /></label>
+          <div className="deal-edit-actions">
+            <button className="primary-action compact" disabled={mutation.isPending} onClick={() => mutation.mutate()}>{mutation.isPending ? "Saving…" : "Save deal"}</button>
+            <button className="secondary-action compact" disabled={mutation.isPending} onClick={cancelEditing}>Cancel</button>
+          </div>
+          {mutation.isError && <div className="notice error" role="alert">Deal could not be updated. Your entered values are retained.</div>}
+        </div>
+      )}
+    </article>
+  );
+}
+
 export function DealsWorkspace() {
   const deals = useQuery({ queryKey: ["deals"], queryFn: fetchDeals });
 
@@ -95,14 +145,7 @@ export function DealsWorkspace() {
         return (
           <section className="deal-column" key={stage.value} aria-label={`${stage.label} deals`}>
             <header><h3>{stage.label}</h3><span>{stageDeals.length}</span></header>
-            {stageDeals.map((deal) => (
-              <article className="deal-card" key={deal.id}>
-                <strong>{deal.title}</strong>
-                <p>{deal.business_name}</p>
-                <span>{formatMoney(deal.value_eur_cents)}</span>
-                <small>{deal.next_action ?? "No next action"}</small>
-              </article>
-            ))}
+            {stageDeals.map((deal) => <DealCard deal={deal} key={deal.id} />)}
             {stageDeals.length === 0 && <div className="empty-state">No deals</div>}
           </section>
         );
