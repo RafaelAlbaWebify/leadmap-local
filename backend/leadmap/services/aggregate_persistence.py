@@ -225,7 +225,7 @@ def _refresh_business_location(
     item: AggregateBusinessInput,
 ) -> None:
     latest = max(_as_utc(value.captured_at) for value in item.observations)
-    if latest >= business.updated_at:
+    if latest >= _as_utc(business.updated_at):
         business.canonical_name = item.displayed_name
         business.normalized_name = item.normalized_name
         business.updated_at = latest
