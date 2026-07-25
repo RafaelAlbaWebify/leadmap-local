@@ -58,6 +58,23 @@ class BusinessRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     locations: Mapped[list["BusinessLocationRecord"]] = relationship(back_populates="business")
+    notes: Mapped[list["BusinessNoteRecord"]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+    )
+
+
+class BusinessNoteRecord(Base):
+    __tablename__ = "business_notes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id"), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    business: Mapped[BusinessRecord] = relationship(back_populates="notes")
+
+    __table_args__ = (Index("ix_business_note_business_created", "business_id", "created_at"),)
 
 
 class BusinessLocationRecord(Base):
