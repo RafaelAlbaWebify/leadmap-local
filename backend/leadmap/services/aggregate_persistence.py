@@ -165,7 +165,7 @@ def _provider_identity_key(item: AggregateBusinessInput) -> str:
             "A business without a provider key requires a normalized name and "
             "stable phone, website, or address."
         )
-    identity = f"{normalized_name}|{discriminator}".encode("utf-8")
+    identity = f"{normalized_name}|{discriminator}".encode()
     digest = hashlib.sha256(identity, usedforsecurity=False).hexdigest()
     return f"fallback:{digest}"
 
