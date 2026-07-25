@@ -27,18 +27,18 @@ jobs:
       - name: Ruff
         run: ruff check .
       - name: Format check
-        run: ruff format --diff . | tee format-report.txt
-      - name: Upload format report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: format-report
-          path: format-report.txt
-          if-no-files-found: error
+        run: ruff format --check .
       - name: Type check
         run: mypy
       - name: Tests
-        run: pytest
+        run: pytest 2>&1 | tee pytest-report.txt
+      - name: Upload pytest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report
+          path: pytest-report.txt
+          if-no-files-found: error
 
   frontend:
     runs-on: ubuntu-latest
