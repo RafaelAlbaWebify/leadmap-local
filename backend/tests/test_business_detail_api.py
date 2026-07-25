@@ -125,8 +125,8 @@ def test_business_detail_returns_locations_and_ordered_observations(
             "website": "https://kildare-accountancy.example",
             "latitude": "53.16",
             "longitude": "-6.91",
-            "created_at": "2026-07-23T12:00:00",
-            "updated_at": "2026-07-25T12:00:00",
+            "created_at": "2026-07-23T12:00:00Z",
+            "updated_at": "2026-07-25T12:00:00Z",
         }
     ]
     assert [item["id"] for item in payload["observations"]] == [
@@ -142,7 +142,7 @@ def test_business_detail_returns_locations_and_ordered_observations(
         "displayed_name": "Kildare Accountancy",
         "category": "Accountant",
         "source_url": "https://maps.example/place-1",
-        "observed_at": "2026-07-23T12:00:00",
+        "observed_at": "2026-07-23T12:00:00Z",
         "query_text": "accountant in Kildare County, IE",
         "search_run_status": "completed",
         "query_sequence": 1,
