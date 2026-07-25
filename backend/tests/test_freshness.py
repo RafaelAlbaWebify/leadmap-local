@@ -13,3 +13,10 @@ def test_freshness_thresholds() -> None:
     assert calculate_freshness(now - timedelta(days=4), now=now) is FreshnessStatus.FRESH
     assert calculate_freshness(now - timedelta(days=30), now=now) is FreshnessStatus.AGEING
     assert calculate_freshness(now - timedelta(days=90), now=now) is FreshnessStatus.STALE
+
+
+def test_naive_database_timestamp_is_interpreted_as_utc() -> None:
+    now = datetime(2026, 7, 19, tzinfo=UTC)
+    persisted = datetime(2026, 7, 15)
+
+    assert calculate_freshness(persisted, now=now) is FreshnessStatus.FRESH
