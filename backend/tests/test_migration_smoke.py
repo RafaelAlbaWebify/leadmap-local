@@ -24,6 +24,7 @@ def test_alembic_upgrade_creates_versioned_schema(tmp_path: Path) -> None:
         "query_templates",
         "businesses",
         "business_notes",
+        "deals",
         "business_locations",
         "search_runs",
         "observations",
@@ -33,4 +34,14 @@ def test_alembic_upgrade_creates_versioned_schema(tmp_path: Path) -> None:
         "business_id",
         "content",
         "created_at",
+    }
+    assert {column["name"] for column in inspector.get_columns("deals")} == {
+        "id",
+        "business_id",
+        "title",
+        "stage",
+        "value_eur_cents",
+        "next_action",
+        "created_at",
+        "updated_at",
     }
