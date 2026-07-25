@@ -2,15 +2,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fetchBusinessDetail } from "./api";
+import { fetchBusinessDetail, updateBusinessQualification } from "./api";
 import { BusinessWorkspace } from "./BusinessWorkspace";
 import type { BusinessDetail, Lead } from "./types";
 
 vi.mock("./api", () => ({
-  fetchBusinessDetail: vi.fn()
+  fetchBusinessDetail: vi.fn(),
+  updateBusinessQualification: vi.fn()
 }));
 
 const mockedFetchDetail = vi.mocked(fetchBusinessDetail);
+const mockedUpdateQualification = vi.mocked(updateBusinessQualification);
 
 const leads: Lead[] = [
   {
@@ -92,7 +94,12 @@ const detail: BusinessDetail = {
 };
 
 function renderWorkspace() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+      mutations: { retry: false }
+    }
+  });
   return render(
     <QueryClientProvider client={queryClient}>
       <BusinessWorkspace leads={leads} />
@@ -100,9 +107,15 @@ function renderWorkspace() {
   );
 }
 
+async function openBusiness() {
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  return screen.findByRole("region", { name: "Business detail workspace" });
+}
+
 describe("BusinessWorkspace", () => {
   beforeEach(() => {
     mockedFetchDetail.mockReset();
+    mockedUpdateQualification.mockReset();
   });
 
   afterEach(() => {
@@ -113,10 +126,9 @@ describe("BusinessWorkspace", () => {
     mockedFetchDetail.mockResolvedValue(detail);
     renderWorkspace();
 
-    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    const workspace = await openBusiness();
 
     await waitFor(() => expect(mockedFetchDetail).toHaveBeenCalledWith("business-1"));
-    const workspace = await screen.findByRole("region", { name: "Business detail workspace" });
     expect(within(workspace).getByRole("heading", { name: "Kildare Accountancy" })).toBeInTheDocument();
     expect(within(workspace).getByText("+353 45 000 000")).toBeInTheDocument();
     expect(within(workspace).getByText("tax advisor in Kildare County, IE")).toBeInTheDocument();
@@ -124,6 +136,45 @@ describe("BusinessWorkspace", () => {
     expect(within(workspace).getByText("accountant in Kildare County, IE")).toBeInTheDocument();
     expect(within(workspace).getByText("rank 2")).toBeInTheDocument();
     expect(within(workspace).getAllByRole("link", { name: "Open source evidence" })).toHaveLength(2);
+  });
+
+  it("saves an explicit qualification change", async () => {
+    mockedFetchDetail.mockResolvedValue(detail);
+    mockedUpdateQualification.mockResolvedValue({
+      id: "business-1",
+      qualification_status: "qualified",
+      updated_at: "2026-07-25T13:00:00Z"
+    });
+    renderWorkspace();
+    const workspace = await openBusiness();
+
+    fireEvent.change(within(workspace).getByLabelText("Status"), {
+      target: { value: "qualified" }
+    });
+    fireEvent.click(within(workspace).getByRole("button", { name: "Save qualification" }));
+
+    await waitFor(() =>
+      expect(mockedUpdateQualification).toHaveBeenCalledWith("business-1", "qualified")
+    );
+    expect(await within(workspace).findByRole("status")).toHaveTextContent(
+      "Qualification saved as qualified."
+    );
+  });
+
+  it("retains the selected status when qualification saving fails", async () => {
+    mockedFetchDetail.mockResolvedValue(detail);
+    mockedUpdateQualification.mockRejectedValue(new Error("save failed"));
+    renderWorkspace();
+    const workspace = await openBusiness();
+    const statusSelect = within(workspace).getByLabelText("Status");
+
+    fireEvent.change(statusSelect, { target: { value: "unsuitable" } });
+    fireEvent.click(within(workspace).getByRole("button", { name: "Save qualification" }));
+
+    expect(await within(workspace).findByRole("alert")).toHaveTextContent(
+      "Qualification could not be saved. Your selection is retained."
+    );
+    expect(statusSelect).toHaveValue("unsuitable");
   });
 
   it("keeps the business list available when detail loading fails", async () => {

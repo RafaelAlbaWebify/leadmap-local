@@ -105,20 +105,49 @@ try {
   const browser = await chromium.launch({ headless: true, args: chromiumArgs });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
+  let qualificationStatus = "needs_review";
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   page.on("pageerror", (error) => consoleErrors.push(error.message));
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const request = route.request();
+    const url = new URL(request.url());
     let payload;
     if (url.pathname === "/api/v1/dashboard") {
-      payload = { total_businesses: 1, qualified_leads: 0, needs_review: 1, stale_records: 0, territories: 1, recent_leads: [lead] };
+      payload = {
+        total_businesses: 1,
+        qualified_leads: qualificationStatus === "qualified" ? 1 : 0,
+        needs_review: qualificationStatus === "needs_review" ? 1 : 0,
+        stale_records: 0,
+        territories: 1,
+        recent_leads: [{ ...lead, qualification_status: qualificationStatus }]
+      };
     } else if (url.pathname === "/api/v1/leads") {
-      payload = [lead];
+      payload = [{ ...lead, qualification_status: qualificationStatus }];
+    } else if (
+      url.pathname === "/api/v1/businesses/business-1/qualification"
+      && request.method() === "PATCH"
+    ) {
+      const body = JSON.parse(request.postData() ?? "{}");
+      if (body.qualification_status !== "qualified") {
+        throw new Error("Qualification update did not submit the selected qualified state.");
+      }
+      qualificationStatus = "qualified";
+      payload = {
+        id: "business-1",
+        qualification_status: qualificationStatus,
+        updated_at: "2026-07-25T13:00:00Z"
+      };
     } else if (url.pathname === "/api/v1/businesses/business-1") {
-      payload = detail;
+      payload = {
+        ...detail,
+        qualification_status: qualificationStatus,
+        updated_at: qualificationStatus === "qualified"
+          ? "2026-07-25T13:00:00Z"
+          : detail.updated_at
+      };
     } else if (url.pathname === "/api/v1/territories" || url.pathname === "/api/v1/query-templates") {
       payload = [];
     } else if (url.pathname.startsWith("/api/v1/geography/")) {
@@ -147,7 +176,14 @@ try {
   await workspace.getByText("accountant in Kildare County, IE").waitFor();
   await workspace.getByText("rank 2").waitFor();
   await workspace.getByRole("link", { name: "Open source evidence" }).first().waitFor();
-  await page.screenshot({ path: "artifacts/screenshots/business-detail-workspace.png", fullPage: true });
+
+  await workspace.getByLabel("Status").selectOption("qualified");
+  await workspace.getByRole("button", { name: "Save qualification" }).click();
+  await workspace.getByRole("status").waitFor();
+  await workspace.getByText("Qualification saved as qualified.").waitFor();
+  await workspace.getByText("qualified", { exact: true }).first().waitFor();
+  await workspace.getByText("2 persisted discovery observations").waitFor();
+  await page.screenshot({ path: "artifacts/screenshots/business-qualified-workspace.png", fullPage: true });
 
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);

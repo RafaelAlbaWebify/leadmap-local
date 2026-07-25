@@ -1,4 +1,11 @@
 export type FreshnessStatus = "fresh" | "ageing" | "stale" | "never_verified";
+export type QualificationStatus =
+  | "new"
+  | "needs_review"
+  | "qualified"
+  | "unsuitable"
+  | "duplicate"
+  | "archived";
 
 export interface Lead {
   id: string;
@@ -11,7 +18,7 @@ export interface Lead {
   first_observed_at: string;
   last_observed_at: string;
   freshness: FreshnessStatus;
-  qualification_status: string;
+  qualification_status: QualificationStatus;
 }
 
 export interface BusinessLocationDetail {
@@ -51,12 +58,18 @@ export interface BusinessDetail {
   id: string;
   canonical_name: string;
   normalized_name: string;
-  qualification_status: string;
+  qualification_status: QualificationStatus;
   freshness: FreshnessStatus;
   created_at: string;
   updated_at: string;
   locations: BusinessLocationDetail[];
   observations: BusinessObservationDetail[];
+}
+
+export interface BusinessQualificationResult {
+  id: string;
+  qualification_status: QualificationStatus;
+  updated_at: string;
 }
 
 export interface DashboardSummary {

@@ -2,6 +2,7 @@ import json
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.leadmap.persistence.models import (
@@ -101,6 +102,12 @@ def seed_business_detail(session: Session) -> BusinessRecord:
     return business
 
 
+def observation_evidence(
+    observations: list[ObservationRecord],
+) -> list[tuple[str, str | None, datetime]]:
+    return [(item.id, item.raw_payload_json, item.observed_at) for item in observations]
+
+
 def test_business_detail_returns_locations_and_ordered_observations(
     client: TestClient,
     db_session: Session,
@@ -152,6 +159,57 @@ def test_business_detail_returns_locations_and_ordered_observations(
         "raw_evidence": "Kildare Accountancy · Accountant",
         "address_text": "Kildare County",
     }
+
+
+def test_business_qualification_update_preserves_observations(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    business = seed_business_detail(db_session)
+    before_observations = list(
+        db_session.scalars(select(ObservationRecord).order_by(ObservationRecord.id))
+    )
+    before_payloads = observation_evidence(before_observations)
+
+    response = client.patch(
+        f"/api/v1/businesses/{business.id}/qualification",
+        json={"qualification_status": "qualified"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["qualification_status"] == "qualified"
+    db_session.refresh(business)
+    assert business.qualification_status == "qualified"
+    after_observations = list(
+        db_session.scalars(select(ObservationRecord).order_by(ObservationRecord.id))
+    )
+    assert observation_evidence(after_observations) == before_payloads
+
+
+def test_business_qualification_rejects_unknown_status(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    business = seed_business_detail(db_session)
+
+    response = client.patch(
+        f"/api/v1/businesses/{business.id}/qualification",
+        json={"qualification_status": "contacted"},
+    )
+
+    assert response.status_code == 422
+    db_session.refresh(business)
+    assert business.qualification_status == "needs_review"
+
+
+def test_business_qualification_returns_404_for_unknown_business(client: TestClient) -> None:
+    response = client.patch(
+        "/api/v1/businesses/missing/qualification",
+        json={"qualification_status": "qualified"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Business not found."}
 
 
 def test_business_detail_returns_404_for_unknown_business(client: TestClient) -> None:

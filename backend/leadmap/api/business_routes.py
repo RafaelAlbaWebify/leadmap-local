@@ -1,14 +1,15 @@
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from backend.leadmap.domain.enums import QualificationStatus
 from backend.leadmap.domain.freshness import calculate_freshness
 from backend.leadmap.persistence.database import get_session
-from backend.leadmap.persistence.models import ObservationRecord
+from backend.leadmap.persistence.models import BusinessRecord, ObservationRecord
 from backend.leadmap.persistence.repositories import LeadRepository
 
 router = APIRouter(prefix="/api/v1/businesses", tags=["businesses"])
@@ -60,6 +61,16 @@ class BusinessDetailResponse(BaseModel):
     observations: list[BusinessObservationResponse]
 
 
+class BusinessQualificationUpdate(BaseModel):
+    qualification_status: QualificationStatus
+
+
+class BusinessQualificationResponse(BaseModel):
+    id: str
+    qualification_status: QualificationStatus
+    updated_at: datetime
+
+
 def _raw_payload(observation: ObservationRecord) -> dict[str, Any]:
     if not observation.raw_payload_json:
         return {}
@@ -80,12 +91,7 @@ def _optional_text(payload: dict[str, Any], key: str) -> str | None:
     return value if isinstance(value, str) else None
 
 
-@router.get("/{business_id}", response_model=BusinessDetailResponse)
-def get_business_detail(business_id: str, session: SessionDependency) -> BusinessDetailResponse:
-    business = LeadRepository(session).get_business(business_id)
-    if business is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
-
+def _business_detail_response(business: BusinessRecord) -> BusinessDetailResponse:
     observations = sorted(
         (observation for location in business.locations for observation in location.observations),
         key=lambda item: item.observed_at,
@@ -140,4 +146,33 @@ def get_business_detail(business_id: str, session: SessionDependency) -> Busines
             )
             for observation in observations
         ],
+    )
+
+
+@router.get("/{business_id}", response_model=BusinessDetailResponse)
+def get_business_detail(business_id: str, session: SessionDependency) -> BusinessDetailResponse:
+    business = LeadRepository(session).get_business(business_id)
+    if business is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
+    return _business_detail_response(business)
+
+
+@router.patch("/{business_id}/qualification", response_model=BusinessQualificationResponse)
+def update_business_qualification(
+    business_id: str,
+    payload: BusinessQualificationUpdate,
+    session: SessionDependency,
+) -> BusinessQualificationResponse:
+    business = session.get(BusinessRecord, business_id)
+    if business is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
+
+    business.qualification_status = payload.qualification_status.value
+    business.updated_at = datetime.now(UTC)
+    session.commit()
+    session.refresh(business)
+    return BusinessQualificationResponse(
+        id=business.id,
+        qualification_status=payload.qualification_status,
+        updated_at=business.updated_at,
     )
