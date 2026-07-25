@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { QueryGroupReview } from "./QueryGroupReview";
@@ -73,7 +73,9 @@ describe("QueryGroupReview", () => {
     );
 
     expect(screen.getByRole("region", { name: "Aggregate business review" })).toBeInTheDocument();
-    expect(screen.getByText("2", { selector: ".aggregate-summary strong" })).toBeInTheDocument();
+    const completedMetric = screen.getByText("queries completed").closest("article");
+    expect(completedMetric).not.toBeNull();
+    expect(within(completedMetric!).getByText("2")).toBeInTheDocument();
     expect(screen.getByText("Kildare Accountancy")).toBeInTheDocument();
     expect(screen.getByText("accountant in Kildare County, IE")).toBeInTheDocument();
     expect(screen.getByText("tax advisor in Kildare County, IE")).toBeInTheDocument();
