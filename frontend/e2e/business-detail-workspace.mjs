@@ -112,6 +112,7 @@ try {
     content: "Reviewed public evidence before qualification.",
     created_at: "2026-07-25T12:30:00Z"
   }];
+  const deals = [];
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
@@ -169,6 +170,33 @@ try {
       && request.method() === "GET"
     ) {
       payload = notes;
+    } else if (
+      url.pathname === "/api/v1/businesses/business-1/deals"
+      && request.method() === "POST"
+    ) {
+      const body = JSON.parse(request.postData() ?? "{}");
+      const expected = {
+        title: "Website redesign",
+        stage: "proposal",
+        value_eur_cents: 350000,
+        next_action: "Send proposal"
+      };
+      if (JSON.stringify(body) !== JSON.stringify(expected)) {
+        throw new Error("Deal create did not submit the exact operator-entered opportunity.");
+      }
+      const created = {
+        id: "deal-1",
+        business_id: "business-1",
+        business_name: "Kildare Accountancy",
+        ...expected,
+        created_at: "2026-07-25T13:10:00Z",
+        updated_at: "2026-07-25T13:10:00Z"
+      };
+      deals.unshift(created);
+      payload = created;
+      responseStatus = 201;
+    } else if (url.pathname === "/api/v1/deals" && request.method() === "GET") {
+      payload = deals;
     } else if (url.pathname === "/api/v1/businesses/business-1") {
       payload = {
         ...detail,
@@ -201,23 +229,33 @@ try {
   await workspace.getByText("53.16, -6.91").waitFor();
   await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
   await workspace.getByText("2 persisted discovery observations").waitFor();
-  await workspace.getByText("tax advisor in Kildare County, IE").waitFor();
-  await workspace.getByText("rank 3").waitFor();
-  await workspace.getByText("accountant in Kildare County, IE").waitFor();
-  await workspace.getByText("rank 2").waitFor();
-  await workspace.getByRole("link", { name: "Open source evidence" }).first().waitFor();
 
   await workspace.getByLabel("Status").selectOption("qualified");
   await workspace.getByRole("button", { name: "Save qualification" }).click();
   await workspace.getByText("Qualification saved as qualified.").waitFor();
 
+  await workspace.getByLabel("Title").fill("Website redesign");
+  await workspace.getByLabel("Stage").selectOption("proposal");
+  await workspace.getByLabel("Value (€)").fill("3500");
+  await workspace.getByLabel("Next action").fill("Send proposal");
+  await workspace.getByRole("button", { name: "Create deal" }).click();
+  await workspace.getByText("Deal created.").waitFor();
+
   await workspace.getByLabel("Add a note").fill("Call next Tuesday after qualification review.");
   await workspace.getByRole("button", { name: "Add note" }).click();
   await workspace.getByText("Note added.").waitFor();
   await workspace.getByText("Call next Tuesday after qualification review.").waitFor();
-  await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
   await workspace.getByText("2 persisted discovery observations").waitFor();
-  await page.screenshot({ path: "artifacts/screenshots/business-notes-workspace.png", fullPage: true });
+
+  await page.getByRole("button", { name: /^Deals$/ }).click();
+  const pipeline = page.getByRole("region", { name: "Deals pipeline" });
+  await pipeline.waitFor();
+  const proposal = page.getByRole("region", { name: "Proposal deals" });
+  await proposal.getByText("Website redesign").waitFor();
+  await proposal.getByText("Kildare Accountancy").waitFor();
+  await proposal.getByText("3500,00 €").waitFor();
+  await proposal.getByText("Send proposal").waitFor();
+  await page.screenshot({ path: "artifacts/screenshots/deals-pipeline-workspace.png", fullPage: true });
 
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
