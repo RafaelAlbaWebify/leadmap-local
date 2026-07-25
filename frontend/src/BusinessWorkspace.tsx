@@ -1,15 +1,48 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchBusinessDetail } from "./api";
-import type { BusinessDetail, Lead } from "./types";
+import { fetchBusinessDetail, updateBusinessQualification } from "./api";
+import type { BusinessDetail, Lead, QualificationStatus } from "./types";
 import "./businessWorkspace.css";
+
+const qualificationOptions: Array<{ value: QualificationStatus; label: string }> = [
+  { value: "new", label: "New" },
+  { value: "needs_review", label: "Needs review" },
+  { value: "qualified", label: "Qualified" },
+  { value: "unsuitable", label: "Unsuitable" },
+  { value: "duplicate", label: "Duplicate" },
+  { value: "archived", label: "Archived" }
+];
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString();
 }
 
 function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
+  const queryClient = useQueryClient();
+  const [selectedStatus, setSelectedStatus] = useState<QualificationStatus>(detail.qualification_status);
+  useEffect(() => setSelectedStatus(detail.qualification_status), [detail.qualification_status]);
+
+  const qualification = useMutation({
+    mutationFn: () => updateBusinessQualification(detail.id, selectedStatus),
+    onSuccess: async (result) => {
+      queryClient.setQueryData<BusinessDetail>(["business-detail", detail.id], (current) =>
+        current
+          ? {
+              ...current,
+              qualification_status: result.qualification_status,
+              updated_at: result.updated_at
+            }
+          : current
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["business-detail", detail.id] }),
+        queryClient.invalidateQueries({ queryKey: ["leads"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] })
+      ]);
+    }
+  });
+
   return (
     <section className="business-detail" aria-label="Business detail workspace">
       <div className="business-detail-header">
@@ -22,6 +55,38 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
           <span className={`badge ${detail.freshness}`}>{detail.freshness.replace("_", " ")}</span>
           <span className="badge neutral">{detail.qualification_status.replace("_", " ")}</span>
         </div>
+      </div>
+
+      <div className="business-qualification" aria-label="Business qualification">
+        <div>
+          <h4>Qualification</h4>
+          <p>Change this only after reviewing the persisted evidence below.</p>
+        </div>
+        <label>
+          Status
+          <select
+            value={selectedStatus}
+            disabled={qualification.isPending}
+            onChange={(event) => setSelectedStatus(event.target.value as QualificationStatus)}
+          >
+            {qualificationOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="primary-action compact"
+          disabled={qualification.isPending || selectedStatus === detail.qualification_status}
+          onClick={() => qualification.mutate()}
+        >
+          {qualification.isPending ? "Saving…" : "Save qualification"}
+        </button>
+        {qualification.isSuccess && (
+          <div className="notice success" role="status">Qualification saved as {selectedStatus.replace("_", " ")}.</div>
+        )}
+        {qualification.isError && (
+          <div className="notice error" role="alert">Qualification could not be saved. Your selection is retained.</div>
+        )}
       </div>
 
       <div className="business-detail-grid">
