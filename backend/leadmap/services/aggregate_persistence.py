@@ -247,29 +247,29 @@ def _get_or_create_run(
     run_key = f"leadmap:{batch_id}:query:{observation.query_sequence}"
     run_id = str(uuid5(NAMESPACE_URL, run_key))
     existing = session.get(SearchRunRecord, run_id)
-    if existing is not None:
-        conflicts = (
-            existing.territory_id != territory.id
-            or existing.query_text != observation.query_text
+    if existing is None:
+        captured_at = _as_utc(observation.captured_at)
+        run = SearchRunRecord(
+            id=run_id,
+            territory_id=territory.id,
+            provider=provider,
+            query_text=observation.query_text,
+            status="completed",
+            started_at=captured_at,
+            completed_at=captured_at,
         )
-        if conflicts:
-            raise ValueError(
-                "Batch query sequence conflicts with an existing persisted search run."
-            )
-        return existing
+        session.add(run)
+        return run
 
-    captured_at = _as_utc(observation.captured_at)
-    run = SearchRunRecord(
-        id=run_id,
-        territory_id=territory.id,
-        provider=provider,
-        query_text=observation.query_text,
-        status="completed",
-        started_at=captured_at,
-        completed_at=captured_at,
+    conflicts = (
+        existing.territory_id != territory.id
+        or existing.query_text != observation.query_text
     )
-    session.add(run)
-    return run
+    if conflicts:
+        raise ValueError(
+            "Batch query sequence conflicts with an existing persisted search run."
+        )
+    return existing
 
 
 def _as_utc(value: datetime) -> datetime:
