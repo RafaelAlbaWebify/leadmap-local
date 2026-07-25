@@ -23,7 +23,14 @@ def test_alembic_upgrade_creates_versioned_schema(tmp_path: Path) -> None:
         "territories",
         "query_templates",
         "businesses",
+        "business_notes",
         "business_locations",
         "search_runs",
         "observations",
     }.issubset(tables)
+    assert {column["name"] for column in inspector.get_columns("business_notes")} == {
+        "id",
+        "business_id",
+        "content",
+        "created_at",
+    }
