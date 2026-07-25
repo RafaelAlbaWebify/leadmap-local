@@ -1,1 +1,0 @@
-The aggregate-query-review module is intentionally pure and in-memory. `QueryGroupReview` renders its output, but App integration remains a separate commit so the current assisted-session flow stays stable while CI validates the model and component independently.
