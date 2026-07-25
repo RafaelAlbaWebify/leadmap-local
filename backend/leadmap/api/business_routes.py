@@ -1,0 +1,143 @@
+import json
+from datetime import datetime
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from backend.leadmap.domain.freshness import calculate_freshness
+from backend.leadmap.persistence.database import get_session
+from backend.leadmap.persistence.models import ObservationRecord
+from backend.leadmap.persistence.repositories import LeadRepository
+
+router = APIRouter(prefix="/api/v1/businesses", tags=["businesses"])
+SessionDependency = Annotated[Session, Depends(get_session)]
+
+
+class BusinessObservationResponse(BaseModel):
+    id: str
+    location_id: str
+    provider: str
+    provider_key: str
+    displayed_name: str
+    category: str
+    source_url: str | None
+    observed_at: datetime
+    query_text: str
+    search_run_status: str
+    query_sequence: int | None
+    result_rank: int | None
+    first_seen_scroll_step: int | None
+    candidate_id: str | None
+    raw_evidence: str | None
+    address_text: str | None
+
+
+class BusinessLocationResponse(BaseModel):
+    id: str
+    locality: str
+    administrative_area: str | None
+    country_code: str
+    postal_area: str | None
+    phone: str | None
+    website: str | None
+    latitude: str | None
+    longitude: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class BusinessDetailResponse(BaseModel):
+    id: str
+    canonical_name: str
+    normalized_name: str
+    qualification_status: str
+    freshness: str
+    created_at: datetime
+    updated_at: datetime
+    locations: list[BusinessLocationResponse]
+    observations: list[BusinessObservationResponse]
+
+
+def _raw_payload(observation: ObservationRecord) -> dict[str, Any]:
+    if not observation.raw_payload_json:
+        return {}
+    try:
+        payload = json.loads(observation.raw_payload_json)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _optional_int(payload: dict[str, Any], key: str) -> int | None:
+    value = payload.get(key)
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _optional_text(payload: dict[str, Any], key: str) -> str | None:
+    value = payload.get(key)
+    return value if isinstance(value, str) else None
+
+
+@router.get("/{business_id}", response_model=BusinessDetailResponse)
+def get_business_detail(business_id: str, session: SessionDependency) -> BusinessDetailResponse:
+    business = LeadRepository(session).get_business(business_id)
+    if business is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
+
+    observations = sorted(
+        (observation for location in business.locations for observation in location.observations),
+        key=lambda item: item.observed_at,
+        reverse=True,
+    )
+    latest_observed_at = observations[0].observed_at if observations else None
+
+    return BusinessDetailResponse(
+        id=business.id,
+        canonical_name=business.canonical_name,
+        normalized_name=business.normalized_name,
+        qualification_status=business.qualification_status,
+        freshness=calculate_freshness(latest_observed_at).value,
+        created_at=business.created_at,
+        updated_at=business.updated_at,
+        locations=[
+            BusinessLocationResponse(
+                id=location.id,
+                locality=location.locality,
+                administrative_area=location.administrative_area,
+                country_code=location.country_code,
+                postal_area=location.postal_area,
+                phone=location.phone,
+                website=location.website,
+                latitude=location.latitude,
+                longitude=location.longitude,
+                created_at=location.created_at,
+                updated_at=location.updated_at,
+            )
+            for location in business.locations
+        ],
+        observations=[
+            BusinessObservationResponse(
+                id=observation.id,
+                location_id=observation.location_id,
+                provider=observation.provider,
+                provider_key=observation.provider_key,
+                displayed_name=observation.displayed_name,
+                category=observation.category,
+                source_url=observation.source_url,
+                observed_at=observation.observed_at,
+                query_text=observation.search_run.query_text,
+                search_run_status=observation.search_run.status,
+                query_sequence=_optional_int(_raw_payload(observation), "query_sequence"),
+                result_rank=_optional_int(_raw_payload(observation), "result_rank"),
+                first_seen_scroll_step=_optional_int(
+                    _raw_payload(observation), "first_seen_scroll_step"
+                ),
+                candidate_id=_optional_text(_raw_payload(observation), "candidate_id"),
+                raw_evidence=_optional_text(_raw_payload(observation), "raw_evidence"),
+                address_text=_optional_text(_raw_payload(observation), "address_text"),
+            )
+            for observation in observations
+        ],
+    )

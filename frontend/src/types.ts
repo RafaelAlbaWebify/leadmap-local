@@ -14,6 +14,51 @@ export interface Lead {
   qualification_status: string;
 }
 
+export interface BusinessLocationDetail {
+  id: string;
+  locality: string;
+  administrative_area: string | null;
+  country_code: string;
+  postal_area: string | null;
+  phone: string | null;
+  website: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BusinessObservationDetail {
+  id: string;
+  location_id: string;
+  provider: string;
+  provider_key: string;
+  displayed_name: string;
+  category: string;
+  source_url: string | null;
+  observed_at: string;
+  query_text: string;
+  search_run_status: string;
+  query_sequence: number | null;
+  result_rank: number | null;
+  first_seen_scroll_step: number | null;
+  candidate_id: string | null;
+  raw_evidence: string | null;
+  address_text: string | null;
+}
+
+export interface BusinessDetail {
+  id: string;
+  canonical_name: string;
+  normalized_name: string;
+  qualification_status: string;
+  freshness: FreshnessStatus;
+  created_at: string;
+  updated_at: string;
+  locations: BusinessLocationDetail[];
+  observations: BusinessObservationDetail[];
+}
+
 export interface DashboardSummary {
   total_businesses: number;
   qualified_leads: number;

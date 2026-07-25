@@ -196,6 +196,18 @@ class LeadRepository:
         )
         return list(self.session.scalars(statement))
 
+    def get_business(self, business_id: str) -> BusinessRecord | None:
+        statement = (
+            select(BusinessRecord)
+            .options(
+                selectinload(BusinessRecord.locations)
+                .selectinload(BusinessLocationRecord.observations)
+                .selectinload(ObservationRecord.search_run)
+            )
+            .where(BusinessRecord.id == business_id)
+        )
+        return self.session.scalar(statement)
+
     def recent_leads(self, limit: int) -> list[dict[str, object]]:
         statement = (
             select(ObservationRecord)
