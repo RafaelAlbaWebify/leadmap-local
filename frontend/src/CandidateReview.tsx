@@ -13,7 +13,7 @@ export function CandidateReview({ review, busyCandidateId, onToggle }: Candidate
         <div>
           <h3>Candidate review</h3>
           <p>
-            {review.included_count} included · {review.excluded_count} excluded · no records saved yet
+            {review.included_count} included · {review.excluded_count} excluded · not saved yet
           </p>
         </div>
       </div>
@@ -61,7 +61,7 @@ export function CandidateReview({ review, busyCandidateId, onToggle }: Candidate
         ))}
       </div>
       <div className="notice">
-        Review decisions remain temporary. Saving approved candidates is intentionally disabled until the persistence slice is implemented.
+        Inclusion decisions are retained in the aggregate review. Complete the query group, then save the included businesses explicitly.
       </div>
     </section>
   );
