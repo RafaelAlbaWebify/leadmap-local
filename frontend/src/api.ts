@@ -3,6 +3,7 @@ import type {
   AggregateSaveResult,
   AssistedSession,
   AssistedSessionReview,
+  BusinessDetail,
   DashboardSummary,
   DiscoveryPlan,
   GeographyArtifact,
@@ -38,6 +39,10 @@ export function fetchQueryTemplates(): Promise<QueryTemplate[]> {
 
 export function fetchLeads(): Promise<Lead[]> {
   return requestJson("/api/v1/leads");
+}
+
+export function fetchBusinessDetail(businessId: string): Promise<BusinessDetail> {
+  return requestJson(`/api/v1/businesses/${businessId}`);
 }
 
 export function fetchGeographyArtifacts(): Promise<GeographyArtifactSummary[]> {
