@@ -1,21 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { createDeal, fetchDeals, type DealStage } from "./dealApi";
 import "./dealsWorkspace.css";
-
-type DealStage = "lead" | "discovery" | "proposal" | "won" | "lost";
-
-interface Deal {
-  id: string;
-  business_id: string;
-  business_name: string;
-  title: string;
-  stage: DealStage;
-  value_eur_cents: number | null;
-  next_action: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 const stageOptions: Array<{ value: DealStage; label: string }> = [
   { value: "lead", label: "Lead" },
@@ -24,35 +11,6 @@ const stageOptions: Array<{ value: DealStage; label: string }> = [
   { value: "won", label: "Won" },
   { value: "lost", label: "Lost" }
 ];
-
-async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`${response.status}: ${detail || response.statusText}`);
-  }
-  return response.json() as Promise<T>;
-}
-
-function fetchDeals(): Promise<Deal[]> {
-  return requestJson("/api/v1/deals");
-}
-
-function createDeal(
-  businessId: string,
-  payload: {
-    title: string;
-    stage: DealStage;
-    value_eur_cents: number | null;
-    next_action: string | null;
-  }
-): Promise<Deal> {
-  return requestJson(`/api/v1/businesses/${businessId}/deals`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-}
 
 function formatMoney(valueEurCents: number | null): string {
   if (valueEurCents === null) return "Value not set";
