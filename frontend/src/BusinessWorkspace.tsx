@@ -66,7 +66,7 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
                 <strong>{observation.category}</strong>
                 <small>{formatDate(observation.observed_at)}</small>
               </div>
-              <span className="badge neutral">{observation.provider}</span>
+              <span className="badge neutral">{observation.provider.replaceAll("_", " ")}</span>
             </header>
             <p className="business-observation-query">{observation.query_text}</p>
             <div className="business-observation-meta">
