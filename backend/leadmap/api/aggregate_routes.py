@@ -121,4 +121,10 @@ def save_aggregate_businesses(
     except ValueError as exc:
         session.rollback()
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return AggregateSaveResponse(**result.__dict__)
+    return AggregateSaveResponse(
+        businesses_created=result.businesses_created,
+        businesses_matched=result.businesses_matched,
+        observations_created=result.observations_created,
+        observations_skipped=result.observations_skipped,
+        businesses_skipped=result.businesses_skipped,
+    )
