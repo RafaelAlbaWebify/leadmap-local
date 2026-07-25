@@ -376,7 +376,7 @@ export function App() {
           </>
         )}
 
-        {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted observations</p></div></div><LeadTable leads={leads.data ?? []} /></section>}
+        {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted businesses</p></div></div><LeadTable leads={leads.data ?? []} /></section>}
         {view === "Deals" && <PlaceholderPage title="Deals pipeline" description="Qualified businesses will become commercial opportunities with stages, value, owner and next action." />}
         {view === "Tasks" && <PlaceholderPage title="Tasks and follow-up" description="Research, outreach and proposal tasks will be linked to businesses and deals." />}
         {view === "Insights" && <PlaceholderPage title="Market and pipeline insights" description="Territory, sector, discovery and conversion metrics will share one reporting model." />}
