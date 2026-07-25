@@ -134,6 +134,46 @@ export interface AssistedSessionReview extends AssistedSession {
   excluded_count: number;
 }
 
+export interface AggregateObservationSave {
+  query_text: string;
+  query_sequence: number;
+  result_rank: number;
+  first_seen_scroll_step: number;
+  captured_at: string;
+  source_url: string | null;
+  raw_evidence: string | null;
+  candidate_id: string;
+}
+
+export interface AggregateBusinessSave {
+  displayed_name: string;
+  normalized_name: string;
+  category: string | null;
+  address_text: string | null;
+  phone: string | null;
+  website: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  provider_key: string;
+  included: boolean;
+  observations: AggregateObservationSave[];
+}
+
+export interface AggregateBatchSave {
+  batch_id: string;
+  territory_id: string;
+  query_template_id: string;
+  businesses: AggregateBusinessSave[];
+}
+
+export interface AggregateSaveResult {
+  businesses_created: number;
+  businesses_matched: number;
+  observations_created: number;
+  observations_skipped: number;
+  businesses_skipped: number;
+}
+
 export interface GeographySource {
   dataset_title: string;
   publisher: string;
