@@ -1,0 +1,165 @@
+.business-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.secondary-action.compact {
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.business-detail-placeholder {
+  padding: 18px;
+}
+
+.business-detail {
+  display: grid;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid #e2e5e9;
+}
+
+.business-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.business-detail-header h3,
+.business-detail-header p {
+  margin: 0;
+}
+
+.business-detail-header h3 {
+  margin-bottom: 4px;
+  font-size: 20px;
+}
+
+.business-detail-header p:not(.eyebrow) {
+  color: #747b84;
+  font-size: 11px;
+}
+
+.business-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.business-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.business-location-card,
+.business-observation {
+  border: 1px solid #dfe3e7;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.business-location-card {
+  padding: 14px;
+}
+
+.business-location-card h4,
+.business-location-card p {
+  margin: 0;
+}
+
+.business-location-card p {
+  margin-top: 4px;
+  color: #747b84;
+  font-size: 11px;
+}
+
+.business-location-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.business-location-card dl div {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.business-location-card dt {
+  color: #747b84;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.business-location-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.business-observations {
+  display: grid;
+  gap: 10px;
+}
+
+.business-observation {
+  padding: 13px 14px;
+}
+
+.business-observation header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.business-observation header div,
+.business-observation header small {
+  display: block;
+}
+
+.business-observation header small {
+  margin-top: 3px;
+  color: #747b84;
+  font-size: 10px;
+}
+
+.business-observation-query {
+  margin: 10px 0 7px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.business-observation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.business-observation-meta span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #f1f3f5;
+  color: #606770;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.business-observation > p:not(.business-observation-query) {
+  margin: 9px 0;
+  color: #59616a;
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .business-detail-header {
+    flex-direction: column;
+  }
+
+  .business-location-card dl div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
