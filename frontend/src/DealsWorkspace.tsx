@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import "./dealsWorkspace.css";
 
-export type DealStage = "lead" | "discovery" | "proposal" | "won" | "lost";
+type DealStage = "lead" | "discovery" | "proposal" | "won" | "lost";
 
-export interface Deal {
+interface Deal {
   id: string;
   business_id: string;
   business_name: string;
@@ -34,11 +34,11 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function fetchDeals(): Promise<Deal[]> {
+function fetchDeals(): Promise<Deal[]> {
   return requestJson("/api/v1/deals");
 }
 
-export function createDeal(
+function createDeal(
   businessId: string,
   payload: {
     title: string;
