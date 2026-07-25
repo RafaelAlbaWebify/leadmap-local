@@ -133,7 +133,7 @@ function session(state) {
     state,
     territory_id: "territory-kildare",
     query_template_id: "template-accountancy",
-    start_url: "https://www.google.com/maps/search/accountant+Kildare+County",
+    start_url: "https://www.google.com/maps/search/accountant+in+Kildare+County%2C+IE",
     error: null
   };
 }
@@ -142,7 +142,7 @@ function boundedReview() {
   return {
     ...session("review"),
     traversal_progress: {
-      query_text: "accountant Kildare County",
+      query_text: "accountant in Kildare County, IE",
       query_sequence: 1,
       scroll_step: 4,
       unique_cards: 2,
@@ -166,7 +166,7 @@ function boundedReview() {
         longitude: "-6.91",
         raw_evidence: "Kildare Accountancy · Accountant",
         included: true,
-        query_text: "accountant Kildare County",
+        query_text: "accountant in Kildare County, IE",
         query_sequence: 1,
         result_rank: 1,
         first_seen_scroll_step: 0,
@@ -186,7 +186,7 @@ function boundedReview() {
         longitude: "-6.89",
         raw_evidence: "County Books · Bookkeeping service",
         included: true,
-        query_text: "accountant Kildare County",
+        query_text: "accountant in Kildare County, IE",
         query_sequence: 1,
         result_rank: 2,
         first_seen_scroll_step: 1,
@@ -245,7 +245,7 @@ try {
     if (path === artifactPath) artifactRequests += 1;
 
     let payload = responses[path];
-    if (path === "/api/v1/discovery/plan" && method === "POST") {
+    if (path === "/api/v1/discovery/prepared-plan" && method === "POST") {
       payload = {
         territory_id: "territory-kildare",
         territory_name: "Kildare County",
@@ -253,17 +253,24 @@ try {
         query_template_id: "template-accountancy",
         query_template_name: "Accountancy",
         sector: "Professional Services",
-        phrases: ["accountant", "accounting firm", "tax advisor", "bookkeeper"],
         max_results_per_query: 20,
         total_planned_queries: 4,
+        prepared_queries: [
+          { sequence: 1, phrase: "accountant", query_text: "accountant in Kildare County, IE" },
+          { sequence: 2, phrase: "accounting firm", query_text: "accounting firm in Kildare County, IE" },
+          { sequence: 3, phrase: "tax advisor", query_text: "tax advisor in Kildare County, IE" },
+          { sequence: 4, phrase: "bookkeeper", query_text: "bookkeeper in Kildare County, IE" }
+        ],
         mode: "assisted"
       };
-    } else if (path === "/api/v1/discovery/session" && method === "POST") {
+    } else if (path === "/api/v1/discovery/prepared-session" && method === "POST") {
       payload = session("awaiting_operator");
     } else if (path === "/api/v1/discovery/session/session-1/ready" && method === "POST") {
       payload = session("ready");
     } else if (path.startsWith("/api/v1/discovery/session/session-1/collect-bounded?") && method === "POST") {
       payload = boundedReview();
+    } else if (path === "/api/v1/discovery/session/session-1" && method === "DELETE") {
+      payload = session("stopped");
     }
 
     if (payload === undefined) {
@@ -309,10 +316,11 @@ try {
 
   await page.getByRole("button", { name: "Preview search plan" }).click();
   await page.getByLabel("Current approved query").waitFor();
-  if (await page.getByLabel("Current approved query").inputValue() !== "accountant Kildare County") {
-    throw new Error("Discovery plan did not prepare the approved query text.");
+  if (await page.getByLabel("Current approved query").inputValue() !== "accountant in Kildare County, IE") {
+    throw new Error("Discovery plan did not prepare canonical query 1 text.");
   }
-  await page.getByRole("button", { name: "Launch visible browser" }).click();
+  await page.getByRole("list", { name: "Prepared query checklist" }).waitFor();
+  await page.getByRole("button", { name: "Launch query 1" }).click();
   await page.getByText("awaiting operator").waitFor();
   await page.getByRole("button", { name: "Browser is ready" }).click();
   await page.getByRole("button", { name: "Collect bounded results" }).click();
@@ -322,6 +330,14 @@ try {
   await page.getByText("Kildare Accountancy").waitFor();
   await page.getByText("County Books").waitFor();
   await page.screenshot({ path: "artifacts/screenshots/discover-bounded-results.png", fullPage: true });
+
+  await page.getByRole("button", { name: "Stop assisted session" }).click();
+  await page.getByRole("button", { name: "Prepare query 2" }).click();
+  if (await page.getByLabel("Current approved query").inputValue() !== "accounting firm in Kildare County, IE") {
+    throw new Error("The operator-controlled next-query action did not prepare query 2.");
+  }
+  await page.getByRole("button", { name: "Launch query 2" }).waitFor();
+  await page.screenshot({ path: "artifacts/screenshots/discover-next-query.png", fullPage: true });
 
   await page.getByRole("button", { name: /^Territories$/ }).click();
   await page.getByRole("heading", { name: "Geographic workspace" }).waitFor();
@@ -341,13 +357,12 @@ try {
   });
 
   if (artifactRequests !== 1) {
-    throw new Error(`Expected one full geography artifact request; received ${artifactRequests}.`);
+    throw new Error(`Expected one full geography artifact request, received ${artifactRequests}.`);
   }
   if (consoleErrors.length > 0) {
-    throw new Error(`Browser console errors:\n${consoleErrors.join("\n")}`);
+    throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
   }
-
   await browser.close();
 } finally {
-  server.kill("SIGTERM");
+  server.kill();
 }

@@ -1,0 +1,119 @@
+.query-checklist {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.query-checklist li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e0e3e7;
+  border-radius: 7px;
+  background: #fafbfc;
+}
+
+.query-checklist li > span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #cfd4da;
+  border-radius: 50%;
+  background: white;
+  color: #676d75;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.query-checklist li > div {
+  min-width: 0;
+}
+
+.query-checklist strong,
+.query-checklist small {
+  display: block;
+}
+
+.query-checklist strong {
+  overflow-wrap: anywhere;
+  color: #292d32;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.query-checklist small {
+  grid-column: 3;
+  grid-row: 1;
+  margin: 0;
+  padding: 3px 7px;
+  border: 1px solid #d8dce1;
+  border-radius: 999px;
+  background: white;
+  color: #737981;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.query-checklist li.current {
+  border-color: #aab1ba;
+  background: #f3f5f7;
+  box-shadow: inset 3px 0 0 #25282c;
+}
+
+.query-checklist li.current > span {
+  border-color: #25282c;
+  background: #25282c;
+  color: white;
+}
+
+.query-checklist li.current small {
+  border-color: #bfc4ca;
+  color: #292d32;
+}
+
+.query-checklist li.completed {
+  border-color: #bfd4c5;
+  background: #f4faf6;
+}
+
+.query-checklist li.completed > span {
+  border-color: #8fbc9b;
+  background: #e8f5ec;
+  color: #276f3f;
+}
+
+.query-checklist li.completed small {
+  border-color: #acd0b6;
+  background: #edf8f0;
+  color: #276f3f;
+}
+
+.query-checklist li.pending {
+  color: #767c84;
+}
+
+.query-checklist li.pending strong {
+  color: #686e76;
+}
+
+@media (max-width: 520px) {
+  .query-checklist li {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
+  .query-checklist small {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    margin-top: 5px;
+  }
+}

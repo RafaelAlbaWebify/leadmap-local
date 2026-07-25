@@ -48,6 +48,12 @@ export interface SeedResult {
   total_query_templates: number;
 }
 
+export interface PreparedQuery {
+  sequence: number;
+  phrase: string;
+  query_text: string;
+}
+
 export interface DiscoveryPlan {
   territory_id: string;
   territory_name: string;
@@ -55,9 +61,9 @@ export interface DiscoveryPlan {
   query_template_id: string;
   query_template_name: string;
   sector: string;
-  phrases: string[];
   max_results_per_query: number;
   total_planned_queries: number;
+  prepared_queries: PreparedQuery[];
   mode: "assisted";
 }
 

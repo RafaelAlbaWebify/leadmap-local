@@ -111,6 +111,8 @@ export function App() {
   const [marketGoal, setMarketGoal] = useState("best-opportunities");
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [approvedQueryText, setApprovedQueryText] = useState("");
+  const [currentQuerySequence, setCurrentQuerySequence] = useState(1);
+  const [completedQuerySequences, setCompletedQuerySequences] = useState<number[]>([]);
   const [assistedSession, setAssistedSession] = useState<AssistedSession | null>(null);
   const [review, setReview] = useState<AssistedSessionReview | null>(null);
   const [busyCandidateId, setBusyCandidateId] = useState<string | null>(null);
@@ -133,13 +135,16 @@ export function App() {
   const plan = useMutation({
     mutationFn: () => createDiscoveryPlan(territoryId, templateId),
     onSuccess: (result) => {
-      setApprovedQueryText(`${result.phrases[0]} ${result.territory_name}`);
+      const firstQuery = result.prepared_queries[0];
+      setCurrentQuerySequence(firstQuery.sequence);
+      setApprovedQueryText(firstQuery.query_text);
+      setCompletedQuerySequences([]);
       setAssistedSession(null);
       setReview(null);
     }
   });
   const launchSession = useMutation({
-    mutationFn: () => launchAssistedSession(territoryId, templateId),
+    mutationFn: () => launchAssistedSession(territoryId, templateId, currentQuerySequence),
     onSuccess: setAssistedSession
   });
   const readySession = useMutation({
@@ -154,10 +159,13 @@ export function App() {
     }
   });
   const collectSession = useMutation({
-    mutationFn: (sessionId: string) => collectBoundedCandidates(sessionId, approvedQueryText),
+    mutationFn: (sessionId: string) => collectBoundedCandidates(sessionId, approvedQueryText, currentQuerySequence),
     onSuccess: (result) => {
       setAssistedSession(result);
       setReview(result);
+      setCompletedQuerySequences((completed) =>
+        completed.includes(currentQuerySequence) ? completed : [...completed, currentQuerySequence]
+      );
     }
   });
   const candidateReview = useMutation({
@@ -197,11 +205,25 @@ export function App() {
   }, [marketRegion, territories.data]);
 
   const sessionActive = assistedSession !== null && ["awaiting_operator", "ready", "capturing", "review"].includes(assistedSession.state);
+  const currentPreparedQuery = plan.data?.prepared_queries.find((item) => item.sequence === currentQuerySequence);
+  const nextPreparedQuery = plan.data?.prepared_queries.find((item) => item.sequence === currentQuerySequence + 1);
 
   function researchMarket(recommendation: Recommendation) {
     setTerritoryId(recommendation.territoryId);
     setView("Discover");
     plan.reset();
+    setCurrentQuerySequence(1);
+    setCompletedQuerySequences([]);
+    setAssistedSession(null);
+    setReview(null);
+  }
+
+  function prepareNextQuery() {
+    if (!nextPreparedQuery || assistedSession?.state !== "stopped") {
+      return;
+    }
+    setCurrentQuerySequence(nextPreparedQuery.sequence);
+    setApprovedQueryText(nextPreparedQuery.query_text);
     setAssistedSession(null);
     setReview(null);
   }
@@ -317,11 +339,21 @@ export function App() {
               {plan.data && <>
                 <h3>{plan.data.query_template_name} in {plan.data.territory_name}</h3>
                 <p className="body-copy">{plan.data.total_planned_queries} prepared queries · bounded result-panel traversal</p>
-                <div className="query-chips">{plan.data.phrases.map((phrase) => <span key={phrase}>{phrase}</span>)}</div>
+                <ol className="query-checklist" aria-label="Prepared query checklist">
+                  {plan.data.prepared_queries.map((query) => {
+                    const state = completedQuerySequences.includes(query.sequence)
+                      ? "completed"
+                      : query.sequence === currentQuerySequence
+                        ? "current"
+                        : "pending";
+                    return <li className={state} key={query.sequence}><span>{query.sequence}</span><div><strong>{query.phrase}</strong><small>{state}</small></div></li>;
+                  })}
+                </ol>
                 <label>Current approved query
                   <input value={approvedQueryText} disabled={assistedSession?.state === "capturing" || assistedSession?.state === "review"} onChange={(event) => setApprovedQueryText(event.target.value)} />
                 </label>
-                {!assistedSession && <button className="primary-action full" disabled={launchSession.isPending} onClick={() => launchSession.mutate()}>{launchSession.isPending ? "Launching visible browser…" : "Launch visible browser"}</button>}
+                {currentPreparedQuery && <small className="form-hint">Query {currentPreparedQuery.sequence} of {plan.data.total_planned_queries}. Each query requires a separate operator-approved session.</small>}
+                {!assistedSession && <button className="primary-action full" disabled={launchSession.isPending} onClick={() => launchSession.mutate()}>{launchSession.isPending ? "Launching visible browser…" : `Launch query ${currentQuerySequence}`}</button>}
                 {assistedSession && <div className="notice">Session status: <strong>{assistedSession.state.replace("_", " ")}</strong>{assistedSession.state === "awaiting_operator" && <p>Use the visible browser to sign in or adjust the approved query, then confirm readiness here.</p>}</div>}
                 {assistedSession?.state === "awaiting_operator" && assistedSession.session_id && <button className="primary-action full" disabled={readySession.isPending} onClick={() => readySession.mutate(assistedSession.session_id!)}>Browser is ready</button>}
                 {assistedSession?.state === "ready" && assistedSession.session_id && <>
@@ -333,6 +365,8 @@ export function App() {
                   <p>{review.traversal_progress.scroll_step} scroll steps · {review.traversal_progress.elapsed_seconds.toFixed(1)} seconds · stopped: {review.traversal_progress.stop_reason?.replaceAll("_", " ") ?? "unknown"}</p>
                 </div>}
                 {sessionActive && assistedSession?.session_id && <button className="secondary-action full" disabled={stopSession.isPending} onClick={() => stopSession.mutate(assistedSession.session_id!)}>Stop assisted session</button>}
+                {assistedSession?.state === "stopped" && nextPreparedQuery && <button className="primary-action full" onClick={prepareNextQuery}>Prepare query {nextPreparedQuery.sequence}</button>}
+                {assistedSession?.state === "stopped" && !nextPreparedQuery && completedQuerySequences.length === plan.data.total_planned_queries && <div className="notice traversal-summary"><strong>Query group complete</strong><p>All prepared queries were collected with explicit operator approval.</p></div>}
                 {review && assistedSession?.state === "review" && assistedSession.session_id && <CandidateReview review={review} busyCandidateId={busyCandidateId} onToggle={(candidateId, included) => candidateReview.mutate({ sessionId: assistedSession.session_id!, candidateId, included })} />}
                 {(launchSession.isError || readySession.isError || captureSession.isError || collectSession.isError || candidateReview.isError || stopSession.isError) && <div className="notice error">The assisted session action failed. Review the backend message and retry.</div>}
               </>}
