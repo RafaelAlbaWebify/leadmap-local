@@ -73,11 +73,10 @@ function TaskCard({ task }: { task: Task }) {
   const queryClient = useQueryClient();
   const completion = useMutation({
     mutationFn: () => completeTask(task.id),
-    onSuccess: async (updated) => {
+    onSuccess: (updated) => {
       queryClient.setQueryData<Task[]>(["tasks"], (current) =>
         current?.map((item) => item.id === updated.id ? updated : item) ?? [updated]
       );
-      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
     }
   });
 
