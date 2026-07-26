@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { createDeal, fetchDeals, updateDeal, type Deal, type DealStage } from "./dealApi";
+import { TaskCreate } from "./TasksWorkspace";
 import "./dealsWorkspace.css";
 
 const stageOptions: Array<{ value: DealStage; label: string }> = [
@@ -128,6 +129,7 @@ function DealCard({ deal }: { deal: Deal }) {
           {mutation.isError && <div className="notice error" role="alert">Deal could not be updated. Your entered values are retained.</div>}
         </div>
       )}
+      <TaskCreate dealId={deal.id} label={`Create task for ${deal.title}`} />
     </article>
   );
 }
