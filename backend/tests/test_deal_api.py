@@ -125,7 +125,7 @@ def test_update_deal_changes_only_stage_next_action_and_timestamp(
     db_session: Session,
 ) -> None:
     deal = seed_deal(db_session)
-    original_updated_at = deal.updated_at
+    original_updated_at = deal.updated_at.replace(tzinfo=None)
 
     response = client.patch(
         f"/api/v1/deals/{deal.id}",
@@ -148,7 +148,7 @@ def test_update_deal_changes_only_stage_next_action_and_timestamp(
     assert deal.stage == "won"
     assert deal.next_action == "Schedule project kickoff"
     assert deal.created_at == datetime(2026, 7, 25, 13, 0)
-    assert deal.updated_at > original_updated_at
+    assert deal.updated_at.replace(tzinfo=None) > original_updated_at
 
 
 def test_update_deal_returns_404_for_unknown_deal(client: TestClient) -> None:
