@@ -44,7 +44,9 @@ describe("task workflow", () => {
       target: { value: "2026-07-30" }
     });
     fireEvent.click(screen.getByRole("button", { name: "Create task" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Task created.");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
       title: "Call decision maker",
       due_date: "2026-07-30",
@@ -94,6 +96,6 @@ describe("task workflow", () => {
     const completedRegion = await screen.findByRole("region", {
       name: "Completed tasks"
     });
-    expect(within(completedRegion).getByText("Call decision maker")).toBeInTheDocument();
+    expect(await within(completedRegion).findByText("Call decision maker")).toBeInTheDocument();
   });
 });
