@@ -38,11 +38,18 @@ def seed_deal(session: Session, business: BusinessRecord) -> DealRecord:
     return deal
 
 
-def test_create_list_and_complete_business_task(client: TestClient, db_session: Session) -> None:
+def test_create_list_and_complete_business_task(
+    client: TestClient,
+    db_session: Session,
+) -> None:
     seed_business(db_session)
     created = client.post(
         "/api/v1/tasks",
-        json={"title": "  Call decision maker  ", "due_date": "2026-07-30", "business_id": "business-1"},
+        json={
+            "title": "  Call decision maker  ",
+            "due_date": "2026-07-30",
+            "business_id": "business-1",
+        },
     )
     assert created.status_code == 201
     payload = created.json()
@@ -61,23 +68,49 @@ def test_create_list_and_complete_business_task(client: TestClient, db_session: 
     assert client.patch(f"/api/v1/tasks/{payload['id']}/complete").status_code == 200
 
 
-def test_create_deal_task_returns_parent_identity(client: TestClient, db_session: Session) -> None:
+def test_create_deal_task_returns_parent_identity(
+    client: TestClient,
+    db_session: Session,
+) -> None:
     business = seed_business(db_session)
     seed_deal(db_session, business)
-    response = client.post("/api/v1/tasks", json={"title": "Review proposal", "deal_id": "deal-1"})
+    response = client.post(
+        "/api/v1/tasks",
+        json={"title": "Review proposal", "deal_id": "deal-1"},
+    )
     assert response.status_code == 201
     assert response.json()["parent_type"] == "deal"
     assert response.json()["parent_name"] == "Website redesign"
 
 
-def test_task_creation_rejects_invalid_contracts(client: TestClient, db_session: Session) -> None:
+def test_task_creation_rejects_invalid_contracts(
+    client: TestClient,
+    db_session: Session,
+) -> None:
     seed_business(db_session)
-    assert client.post("/api/v1/tasks", json={"title": " ", "business_id": "business-1"}).status_code == 422
-    assert client.post("/api/v1/tasks", json={"title": "x" * 301, "business_id": "business-1"}).status_code == 422
-    assert client.post("/api/v1/tasks", json={"title": "No parent"}).status_code == 422
-    assert client.post("/api/v1/tasks", json={"title": "Two parents", "business_id": "business-1", "deal_id": "deal-1"}).status_code == 422
-    assert client.post("/api/v1/tasks", json={"title": "Bad date", "due_date": "tomorrow", "business_id": "business-1"}).status_code == 422
-    assert client.post("/api/v1/tasks", json={"title": "Unknown", "business_id": "missing"}).status_code == 404
+    cases = [
+        {"title": " ", "business_id": "business-1"},
+        {"title": "x" * 301, "business_id": "business-1"},
+        {"title": "No parent"},
+        {
+            "title": "Two parents",
+            "business_id": "business-1",
+            "deal_id": "deal-1",
+        },
+        {
+            "title": "Bad date",
+            "due_date": "tomorrow",
+            "business_id": "business-1",
+        },
+    ]
+    for payload in cases:
+        assert client.post("/api/v1/tasks", json=payload).status_code == 422
+
+    unknown = client.post(
+        "/api/v1/tasks",
+        json={"title": "Unknown", "business_id": "missing"},
+    )
+    assert unknown.status_code == 404
     assert db_session.query(TaskRecord).count() == 0
 
 
