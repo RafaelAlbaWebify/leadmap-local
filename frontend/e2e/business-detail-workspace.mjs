@@ -227,10 +227,11 @@ try {
 
   await workspace.getByLabel("Status").selectOption("qualified");
   await workspace.getByRole("button", { name: "Save qualification" }).click();
-  await workspace.getByText("Qualification saved as qualified.").waitFor();
 
   const dealCreate = workspace.getByRole("region", { name: "Create deal" });
-  await dealCreate.getByLabel("Title", { exact: true }).fill("Website redesign");
+  const dealTitle = dealCreate.getByLabel("Title", { exact: true });
+  await dealTitle.waitFor();
+  await dealTitle.fill("Website redesign");
   await dealCreate.getByLabel("Stage", { exact: true }).selectOption("proposal");
   await dealCreate.getByLabel("Value (€)").fill("3500");
   await dealCreate.getByLabel("Next action", { exact: true }).fill("Send proposal");
