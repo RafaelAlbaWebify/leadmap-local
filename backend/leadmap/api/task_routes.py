@@ -88,13 +88,21 @@ def create_task(payload: TaskCreate, session: SessionDependency) -> TaskResponse
     if payload.business_id is not None:
         business = session.get(BusinessRecord, payload.business_id)
         if business is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Business not found.",
+            )
     if payload.deal_id is not None:
         deal = session.scalar(
-            select(DealRecord).options(joinedload(DealRecord.business)).where(DealRecord.id == payload.deal_id)
+            select(DealRecord)
+            .options(joinedload(DealRecord.business))
+            .where(DealRecord.id == payload.deal_id)
         )
         if deal is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Deal not found.",
+            )
 
     now = datetime.now(UTC)
     record = TaskRecord(
@@ -120,7 +128,10 @@ def complete_task(task_id: str, session: SessionDependency) -> TaskResponse:
         .where(TaskRecord.id == task_id)
     )
     if record is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found.",
+        )
     if record.status != TaskStatus.COMPLETED.value:
         record.status = TaskStatus.COMPLETED.value
         record.updated_at = datetime.now(UTC)
