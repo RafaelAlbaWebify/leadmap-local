@@ -1,17 +1,7 @@
 from datetime import date, datetime
 from uuid import uuid4
 
-from sqlalchemy import (
-    CheckConstraint,
-    Date,
-    DateTime,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -67,9 +57,7 @@ class BusinessRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    locations: Mapped[list["BusinessLocationRecord"]] = relationship(
-        back_populates="business"
-    )
+    locations: Mapped[list["BusinessLocationRecord"]] = relationship(back_populates="business")
     notes: Mapped[list["BusinessNoteRecord"]] = relationship(
         back_populates="business",
         cascade="all, delete-orphan",
@@ -165,9 +153,7 @@ class BusinessLocationRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     business: Mapped[BusinessRecord] = relationship(back_populates="locations")
-    observations: Mapped[list["ObservationRecord"]] = relationship(
-        back_populates="location"
-    )
+    observations: Mapped[list["ObservationRecord"]] = relationship(back_populates="location")
 
     __table_args__ = (Index("ix_location_geo", "country_code", "administrative_area", "locality"),)
 
@@ -184,9 +170,7 @@ class SearchRunRecord(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     territory: Mapped[TerritoryRecord] = relationship(back_populates="search_runs")
-    observations: Mapped[list["ObservationRecord"]] = relationship(
-        back_populates="search_run"
-    )
+    observations: Mapped[list["ObservationRecord"]] = relationship(back_populates="search_run")
 
 
 class ObservationRecord(Base):
@@ -194,10 +178,7 @@ class ObservationRecord(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     search_run_id: Mapped[str] = mapped_column(ForeignKey("search_runs.id"), nullable=False)
-    location_id: Mapped[str] = mapped_column(
-        ForeignKey("business_locations.id"),
-        nullable=False,
-    )
+    location_id: Mapped[str] = mapped_column(ForeignKey("business_locations.id"), nullable=False)
     provider: Mapped[str] = mapped_column(String(80), nullable=False)
     provider_key: Mapped[str] = mapped_column(String(500), nullable=False)
     displayed_name: Mapped[str] = mapped_column(String(300), nullable=False)
@@ -211,10 +192,7 @@ class ObservationRecord(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "search_run_id",
-            "provider",
-            "provider_key",
-            name="uq_observation_per_run",
+            "search_run_id", "provider", "provider_key", name="uq_observation_per_run"
         ),
         Index("ix_observation_provider_identity", "provider", "provider_key"),
         Index("ix_observation_observed_at", "observed_at"),
