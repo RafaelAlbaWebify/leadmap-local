@@ -58,79 +58,74 @@ export function BusinessDealCreate({
     && Number.isFinite(numericValue)
     && numericValue >= 0;
 
-  return (
-    <>
-      {qualificationStatus !== "qualified" ? (
-        <section className="deal-create locked" aria-label="Create deal">
+  return qualificationStatus !== "qualified" ? (
+    <section className="deal-create locked" aria-label="Create deal">
+      <h3>Create deal</h3>
+      <p>Qualify this business before creating a commercial opportunity.</p>
+    </section>
+  ) : (
+    <section className="deal-create" aria-label="Create deal">
+      <div className="panel-heading">
+        <div>
           <h3>Create deal</h3>
-          <p>Qualify this business before creating a commercial opportunity.</p>
-        </section>
-      ) : (
-        <section className="deal-create" aria-label="Create deal">
-          <div className="panel-heading">
-            <div>
-              <h3>Create deal</h3>
-              <p>Turn this qualified business into an explicit opportunity.</p>
-            </div>
-          </div>
-          <div className="deal-form-grid">
-            <label>
-              Title
-              <input
-                value={title}
-                maxLength={300}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </label>
-            <label>
-              Stage
-              <select
-                value={stage}
-                onChange={(event) => setStage(event.target.value as DealStage)}
-              >
-                {stageOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Value (€)
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={valueEur}
-                onChange={(event) => setValueEur(event.target.value)}
-              />
-            </label>
-            <label>
-              Next action
-              <input
-                value={nextAction}
-                maxLength={1000}
-                onChange={(event) => setNextAction(event.target.value)}
-              />
-            </label>
-          </div>
-          <button
-            className="primary-action compact"
-            disabled={!canSubmit || mutation.isPending}
-            onClick={() => mutation.mutate()}
+          <p>Turn this qualified business into an explicit opportunity.</p>
+        </div>
+      </div>
+      <div className="deal-form-grid">
+        <label>
+          Title
+          <input
+            value={title}
+            maxLength={300}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
+        <label>
+          Stage
+          <select
+            value={stage}
+            onChange={(event) => setStage(event.target.value as DealStage)}
           >
-            {mutation.isPending ? "Creating…" : "Create deal"}
-          </button>
-          {mutation.isSuccess && (
-            <div className="notice success" role="status">Deal created.</div>
-          )}
-          {mutation.isError && (
-            <div className="notice error" role="alert">
-              Deal could not be created. Your entered values are retained.
-            </div>
-          )}
-        </section>
+            {stageOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Value (€)
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={valueEur}
+            onChange={(event) => setValueEur(event.target.value)}
+          />
+        </label>
+        <label>
+          Next action
+          <input
+            value={nextAction}
+            maxLength={1000}
+            onChange={(event) => setNextAction(event.target.value)}
+          />
+        </label>
+      </div>
+      <button
+        className="primary-action compact"
+        disabled={!canSubmit || mutation.isPending}
+        onClick={() => mutation.mutate()}
+      >
+        {mutation.isPending ? "Creating…" : "Create deal"}
+      </button>
+      {mutation.isSuccess && (
+        <div className="notice success" role="status">Deal created.</div>
       )}
-      <TaskCreate businessId={businessId} label="Create business task" />
-    </>
+      {mutation.isError && (
+        <div className="notice error" role="alert">
+          Deal could not be created. Your entered values are retained.
+        </div>
+      )}
+    </section>
   );
 }
 
