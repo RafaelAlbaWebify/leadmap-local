@@ -52,9 +52,11 @@ def _response(record: TaskRecord) -> TaskResponse:
     if record.business is not None:
         parent_type = "business"
         parent_name = record.business.canonical_name
-    else:
+    elif record.deal is not None:
         parent_type = "deal"
         parent_name = record.deal.title
+    else:
+        raise RuntimeError("Persisted task has no parent.")
     return TaskResponse(
         id=record.id,
         title=record.title,
