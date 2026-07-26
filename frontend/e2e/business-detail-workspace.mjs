@@ -113,6 +113,7 @@ try {
     created_at: "2026-07-25T12:30:00Z"
   }];
   const deals = [];
+  const tasks = [];
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
@@ -212,6 +213,46 @@ try {
       payload = deals[0];
     } else if (url.pathname === "/api/v1/deals" && request.method() === "GET") {
       payload = deals;
+    } else if (url.pathname === "/api/v1/tasks" && request.method() === "POST") {
+      const body = JSON.parse(request.postData() ?? "{}");
+      const parentType = body.business_id ? "business" : "deal";
+      const expectedTitle = parentType === "business" ? "Call decision maker" : "Review signed proposal";
+      if (body.title !== expectedTitle || body.due_date !== "2026-07-30") {
+        throw new Error("Task create did not submit the exact operator-entered values.");
+      }
+      if (parentType === "business" && body.business_id !== "business-1") {
+        throw new Error("Business task did not reference the selected business.");
+      }
+      if (parentType === "deal" && body.deal_id !== "deal-1") {
+        throw new Error("Deal task did not reference the selected deal.");
+      }
+      const created = {
+        id: `task-${tasks.length + 1}`,
+        title: body.title,
+        due_date: body.due_date,
+        status: "open",
+        business_id: body.business_id ?? null,
+        deal_id: body.deal_id ?? null,
+        parent_type: parentType,
+        parent_name: parentType === "business" ? "Kildare Accountancy" : "Website redesign",
+        created_at: "2026-07-25T13:25:00Z",
+        updated_at: "2026-07-25T13:25:00Z"
+      };
+      tasks.unshift(created);
+      payload = created;
+      responseStatus = 201;
+    } else if (url.pathname === "/api/v1/tasks" && request.method() === "GET") {
+      payload = tasks;
+    } else if (
+      url.pathname === "/api/v1/tasks/task-1/complete"
+      && request.method() === "PATCH"
+    ) {
+      tasks[1] = {
+        ...tasks[1],
+        status: "completed",
+        updated_at: "2026-07-25T13:30:00Z"
+      };
+      payload = tasks[1];
     } else if (url.pathname === "/api/v1/businesses/business-1") {
       payload = {
         ...detail,
@@ -245,6 +286,12 @@ try {
   await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
   await workspace.getByText("2 persisted discovery observations").waitFor();
 
+  const businessTask = workspace.getByRole("region", { name: "Create task for Kildare Accountancy" });
+  await businessTask.getByLabel("Task title").fill("Call decision maker");
+  await businessTask.getByLabel("Due date").fill("2026-07-30");
+  await businessTask.getByRole("button", { name: "Create task" }).click();
+  await businessTask.getByText("Task created.").waitFor();
+
   await workspace.getByLabel("Status").selectOption("qualified");
   await workspace.getByRole("button", { name: "Save qualification" }).click();
   await workspace.getByText("Qualification saved as qualified.").waitFor();
@@ -271,6 +318,12 @@ try {
   await proposal.getByText("3500,00 €").waitFor();
   await proposal.getByText("Send proposal").waitFor();
 
+  const dealTask = proposal.getByRole("region", { name: "Create task for Website redesign" });
+  await dealTask.getByLabel("Task title").fill("Review signed proposal");
+  await dealTask.getByLabel("Due date").fill("2026-07-30");
+  await dealTask.getByRole("button", { name: "Create task" }).click();
+  await dealTask.getByText("Task created.").waitFor();
+
   await proposal.getByRole("button", { name: "Edit deal" }).click();
   const editor = proposal.getByLabel("Edit Website redesign");
   await editor.getByLabel("Stage").selectOption("won");
@@ -283,7 +336,17 @@ try {
   await won.getByText("3500,00 €").waitFor();
   await won.getByText("Schedule kickoff").waitFor();
   await proposal.getByText("Website redesign").waitFor({ state: "detached" });
-  await page.screenshot({ path: "artifacts/screenshots/deal-stage-update-workspace.png", fullPage: true });
+
+  await page.getByRole("button", { name: /^Tasks$/ }).click();
+  const tasksWorkspace = page.getByRole("region", { name: "Tasks workspace" });
+  await tasksWorkspace.waitFor();
+  const openTasks = tasksWorkspace.getByRole("region", { name: "Open tasks" });
+  await openTasks.getByText("Call decision maker").waitFor();
+  await openTasks.getByText("Review signed proposal").waitFor();
+  await openTasks.getByRole("button", { name: "Mark completed" }).first().click();
+  const completedTasks = tasksWorkspace.getByRole("region", { name: "Completed tasks" });
+  await completedTasks.getByText("Call decision maker").waitFor();
+  await page.screenshot({ path: "artifacts/screenshots/persisted-follow-up-tasks.png", fullPage: true });
 
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
