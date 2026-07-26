@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TaskCreate, TasksWorkspace } from "./TasksWorkspace";
 import type { Task } from "./taskApi";
@@ -33,13 +33,12 @@ const openTask: Task = {
   updated_at: "2026-07-26T12:00:00Z"
 };
 
-describe("task workflow", () => {
-  beforeEach(() => vi.restoreAllMocks());
+afterEach(() => vi.unstubAllGlobals());
 
+describe("task workflow", () => {
   it("creates a business task and clears only after success", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      jsonResponse(openTask, 201)
-    );
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(openTask, 201));
+    vi.stubGlobal("fetch", fetchMock);
     renderWithClient(<TaskCreate businessId="business-1" />);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
@@ -58,8 +57,8 @@ describe("task workflow", () => {
       "/api/v1/tasks",
       expect.objectContaining({ method: "POST" })
     );
-    const request = fetchMock.mock.calls[0][1];
-    expect(JSON.parse(String(request?.body))).toEqual({
+    const request = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toEqual({
       title: "Call decision maker",
       due_date: "2026-07-30",
       business_id: "business-1"
@@ -67,7 +66,7 @@ describe("task workflow", () => {
   });
 
   it("retains entered task values after failure", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("failed", { status: 500 }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("failed", { status: 500 })));
     renderWithClient(<TaskCreate dealId="deal-1" />);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
@@ -91,9 +90,10 @@ describe("task workflow", () => {
       status: "completed",
       updated_at: "2026-07-26T13:00:00Z"
     };
-    const fetchMock = vi.spyOn(globalThis, "fetch")
+    const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse([openTask]))
       .mockResolvedValueOnce(jsonResponse(completed));
+    vi.stubGlobal("fetch", fetchMock);
     renderWithClient(<TasksWorkspace />);
 
     const open = await screen.findByRole("region", { name: "Open tasks" });
