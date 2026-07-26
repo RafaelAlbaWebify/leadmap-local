@@ -4,15 +4,8 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TaskCreate, TasksWorkspace } from "./TasksWorkspace";
+import * as taskApi from "./taskApi";
 import type { Task } from "./taskApi";
-
-const taskApiMocks = vi.hoisted(() => ({
-  createTask: vi.fn(),
-  fetchTasks: vi.fn(),
-  completeTask: vi.fn()
-}));
-
-vi.mock("./taskApi", () => taskApiMocks);
 
 function renderWithClient(ui: ReactNode) {
   const queryClient = new QueryClient({
@@ -35,13 +28,10 @@ const openTask: Task = {
 };
 
 describe("task workflow", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    taskApiMocks.fetchTasks.mockResolvedValue([]);
-  });
+  beforeEach(() => vi.restoreAllMocks());
 
   it("creates a business task and clears only after success", async () => {
-    taskApiMocks.createTask.mockResolvedValue(openTask);
+    const create = vi.spyOn(taskApi, "createTask").mockResolvedValue(openTask);
     renderWithClient(<TaskCreate businessId="business-1" />);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
@@ -52,7 +42,7 @@ describe("task workflow", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create task" }));
 
-    await waitFor(() => expect(taskApiMocks.createTask).toHaveBeenCalledWith({
+    await waitFor(() => expect(create).toHaveBeenCalledWith({
       title: "Call decision maker",
       due_date: "2026-07-30",
       business_id: "business-1"
@@ -63,7 +53,7 @@ describe("task workflow", () => {
   });
 
   it("retains entered task values after failure", async () => {
-    taskApiMocks.createTask.mockRejectedValue(new Error("failed"));
+    vi.spyOn(taskApi, "createTask").mockRejectedValue(new Error("failed"));
     renderWithClient(<TaskCreate dealId="deal-1" />);
 
     fireEvent.change(screen.getByLabelText("Task title"), {
@@ -87,14 +77,14 @@ describe("task workflow", () => {
       status: "completed",
       updated_at: "2026-07-26T13:00:00Z"
     };
-    taskApiMocks.fetchTasks.mockResolvedValue([openTask]);
-    taskApiMocks.completeTask.mockResolvedValue(completed);
+    vi.spyOn(taskApi, "fetchTasks").mockResolvedValue([openTask]);
+    const complete = vi.spyOn(taskApi, "completeTask").mockResolvedValue(completed);
     renderWithClient(<TasksWorkspace />);
 
     const open = await screen.findByRole("region", { name: "Open tasks" });
     fireEvent.click(within(open).getByRole("button", { name: "Mark completed" }));
 
-    await waitFor(() => expect(taskApiMocks.completeTask).toHaveBeenCalledWith("task-1"));
+    await waitFor(() => expect(complete).toHaveBeenCalledWith("task-1"));
     const completedRegion = await screen.findByRole("region", {
       name: "Completed tasks"
     });
