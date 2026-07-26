@@ -9,6 +9,7 @@ from .api.deal_routes import router as deal_router
 from .api.geography_routes import router as geography_router
 from .api.query_plan_routes import router as query_plan_router
 from .api.routes import router
+from .api.task_routes import router as task_router
 from .config import get_settings
 
 settings = get_settings()
@@ -31,4 +32,5 @@ app.include_router(capture_router)
 app.include_router(aggregate_router)
 app.include_router(business_router)
 app.include_router(deal_router)
+app.include_router(task_router)
 app.include_router(geography_router)
