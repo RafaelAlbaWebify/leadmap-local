@@ -28,7 +28,8 @@
   gap: 10px;
 }
 
-.deal-form-grid label {
+.deal-form-grid label,
+.deal-edit label {
   display: grid;
   gap: 5px;
 }
@@ -74,7 +75,7 @@
 
 .deal-card {
   display: grid;
-  gap: 5px;
+  gap: 7px;
   padding: 12px;
   border: 1px solid #dfe3e7;
   border-radius: 8px;
@@ -84,10 +85,6 @@
 .deal-card p,
 .deal-card small {
   margin: 0;
-}
-
-.deal-card p,
-.deal-card small {
   color: #747b84;
   font-size: 10px;
 }
@@ -95,6 +92,24 @@
 .deal-card > span {
   font-size: 12px;
   font-weight: 600;
+}
+
+.deal-edit {
+  display: grid;
+  gap: 9px;
+  margin-top: 3px;
+  padding-top: 10px;
+  border-top: 1px solid #e6e9ec;
+}
+
+.deal-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.deal-edit .notice {
+  margin: 0;
 }
 
 @media (max-width: 760px) {

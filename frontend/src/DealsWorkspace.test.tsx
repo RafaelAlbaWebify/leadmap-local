@@ -15,6 +15,18 @@ function renderWithClient(ui: ReactNode) {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
+const proposalDeal = {
+  id: "deal-1",
+  business_id: "business-1",
+  business_name: "Kildare Accountancy",
+  title: "Website redesign",
+  stage: "proposal",
+  value_eur_cents: 350000,
+  next_action: "Send proposal",
+  created_at: "2026-07-25T14:00:00Z",
+  updated_at: "2026-07-25T14:00:00Z"
+};
+
 describe("deal workflow", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -24,17 +36,10 @@ describe("deal workflow", () => {
 
   it("creates a deal explicitly for a qualified business and clears the form", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({
-        id: "deal-1",
-        business_id: "business-1",
-        business_name: "Kildare Accountancy",
-        title: "Website redesign",
-        stage: "proposal",
-        value_eur_cents: 350000,
-        next_action: "Send proposal",
-        created_at: "2026-07-25T14:00:00Z",
-        updated_at: "2026-07-25T14:00:00Z"
-      }), { status: 201, headers: { "Content-Type": "application/json" } })
+      new Response(JSON.stringify(proposalDeal), {
+        status: 201,
+        headers: { "Content-Type": "application/json" }
+      })
     );
     renderWithClient(
       <BusinessDealCreate businessId="business-1" qualificationStatus="qualified" />
@@ -83,21 +88,80 @@ describe("deal workflow", () => {
     expect(screen.queryByRole("button", { name: "Create deal" })).not.toBeInTheDocument();
   });
 
+  it("moves an explicitly updated deal to its new stage", async () => {
+    const updated = {
+      ...proposalDeal,
+      stage: "won",
+      next_action: "Schedule kickoff",
+      updated_at: "2026-07-25T15:00:00Z"
+    };
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify([proposalDeal]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(updated), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      }))
+      .mockResolvedValue(new Response(JSON.stringify([updated]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      }));
+    renderWithClient(<DealsWorkspace />);
+
+    const proposal = await screen.findByRole("region", { name: "Proposal deals" });
+    fireEvent.click(within(proposal).getByRole("button", { name: "Edit deal" }));
+    const editor = within(proposal).getByLabelText("Edit Website redesign");
+    fireEvent.change(within(editor).getByLabelText("Stage"), { target: { value: "won" } });
+    fireEvent.change(within(editor).getByLabelText("Next action"), {
+      target: { value: "Schedule kickoff" }
+    });
+    fireEvent.click(within(editor).getByRole("button", { name: "Save deal" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    const [, init] = fetchMock.mock.calls[1];
+    expect(JSON.parse(String(init?.body))).toEqual({
+      stage: "won",
+      next_action: "Schedule kickoff"
+    });
+    const won = await screen.findByRole("region", { name: "Won deals" });
+    expect(within(won).getByText("Website redesign")).toBeInTheDocument();
+    expect(within(won).getByText("Schedule kickoff")).toBeInTheDocument();
+    expect(within(proposal).queryByText("Website redesign")).not.toBeInTheDocument();
+  });
+
+  it("retains deal edits after a failed update", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify([proposalDeal]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      }))
+      .mockResolvedValueOnce(new Response("failed", { status: 500 }));
+    renderWithClient(<DealsWorkspace />);
+
+    const proposal = await screen.findByRole("region", { name: "Proposal deals" });
+    fireEvent.click(within(proposal).getByRole("button", { name: "Edit deal" }));
+    const editor = within(proposal).getByLabelText("Edit Website redesign");
+    fireEvent.change(within(editor).getByLabelText("Stage"), { target: { value: "won" } });
+    fireEvent.change(within(editor).getByLabelText("Next action"), {
+      target: { value: "Retained next action" }
+    });
+    fireEvent.click(within(editor).getByRole("button", { name: "Save deal" }));
+
+    expect(await within(editor).findByRole("alert")).toHaveTextContent(
+      "Deal could not be updated. Your entered values are retained."
+    );
+    expect(within(editor).getByLabelText("Stage")).toHaveValue("won");
+    expect(within(editor).getByLabelText("Next action")).toHaveValue("Retained next action");
+  });
+
   it("groups persisted deals by stage", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify([
-        {
-          id: "deal-1",
-          business_id: "business-1",
-          business_name: "Kildare Accountancy",
-          title: "Website redesign",
-          stage: "proposal",
-          value_eur_cents: 350000,
-          next_action: "Send proposal",
-          created_at: "2026-07-25T14:00:00Z",
-          updated_at: "2026-07-25T14:00:00Z"
-        }
-      ]), { status: 200, headers: { "Content-Type": "application/json" } })
+      new Response(JSON.stringify([proposalDeal]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
     );
     renderWithClient(<DealsWorkspace />);
 

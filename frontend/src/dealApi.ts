@@ -40,3 +40,14 @@ export function createDeal(
     body: JSON.stringify(payload)
   });
 }
+
+export function updateDeal(
+  dealId: string,
+  payload: { stage: DealStage; next_action: string | null }
+): Promise<Deal> {
+  return requestJson(`/api/v1/deals/${dealId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+}

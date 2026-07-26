@@ -45,6 +45,19 @@ class DealCreate(BaseModel):
         return normalized or None
 
 
+class DealUpdate(BaseModel):
+    stage: DealStage
+    next_action: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("next_action")
+    @classmethod
+    def normalize_next_action(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+
 class DealResponse(BaseModel):
     id: str
     business_id: str
@@ -111,6 +124,26 @@ def create_deal(
         updated_at=now,
     )
     session.add(record)
+    session.commit()
+    session.refresh(record)
+    return _response(record)
+
+
+@router.patch("/deals/{deal_id}", response_model=DealResponse)
+def update_deal(
+    deal_id: str,
+    payload: DealUpdate,
+    session: SessionDependency,
+) -> DealResponse:
+    record = session.scalar(
+        select(DealRecord).options(joinedload(DealRecord.business)).where(DealRecord.id == deal_id)
+    )
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found.")
+
+    record.stage = payload.stage.value
+    record.next_action = payload.next_action
+    record.updated_at = datetime.now(UTC)
     session.commit()
     session.refresh(record)
     return _response(record)
