@@ -136,9 +136,7 @@ def update_deal(
     session: SessionDependency,
 ) -> DealResponse:
     record = session.scalar(
-        select(DealRecord)
-        .options(joinedload(DealRecord.business))
-        .where(DealRecord.id == deal_id)
+        select(DealRecord).options(joinedload(DealRecord.business)).where(DealRecord.id == deal_id)
     )
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found.")
