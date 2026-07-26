@@ -77,8 +77,10 @@ jobs:
         run: |
           node e2e/geography-screenshot-review.mjs
           node e2e/aggregate-query-review.mjs
-          node e2e/business-detail-workspace.mjs
-          node e2e/task-workspace.mjs
+          mkdir -p artifacts/screenshots
+          set -o pipefail
+          node e2e/business-detail-workspace.mjs 2>&1 | tee artifacts/screenshots/business-detail-workspace.log
+          node e2e/task-workspace.mjs 2>&1 | tee artifacts/screenshots/task-workspace.log
       - name: Upload screenshot review
         if: always()
         uses: actions/upload-artifact@v4
