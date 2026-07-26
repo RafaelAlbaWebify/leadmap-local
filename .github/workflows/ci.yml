@@ -27,16 +27,7 @@ jobs:
       - name: Ruff
         run: ruff check .
       - name: Format check
-        run: |
-          set -o pipefail
-          ruff format --check --diff . 2>&1 | tee deal-stage-format.txt
-      - name: Upload format report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deal-stage-format
-          path: deal-stage-format.txt
-          if-no-files-found: error
+        run: ruff format --check .
       - name: Type check
         run: mypy
       - name: Tests
