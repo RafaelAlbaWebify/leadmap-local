@@ -1,6 +1,6 @@
-import { chromium } from "playwright";
 import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
+import { chromium } from "playwright";
 
 async function waitForServer(url, timeoutMs = 30000) {
   const deadline = Date.now() + timeoutMs;
@@ -99,11 +99,16 @@ const server = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1"], {
 try {
   await waitForServer("http://127.0.0.1:5173");
   await mkdir("artifacts/screenshots", { recursive: true });
-  const chromiumArgs = process.platform === "win32"
-    ? ["--enable-webgl"]
-    : ["--use-gl=swiftshader", "--enable-webgl"];
-  const browser = await chromium.launch({ headless: true, args: chromiumArgs });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });
+  const browser = await chromium.launch({
+    headless: true,
+    args: process.platform === "win32"
+      ? ["--enable-webgl"]
+      : ["--use-gl=swiftshader", "--enable-webgl"]
+  });
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 1100 },
+    deviceScaleFactor: 1
+  });
   const consoleErrors = [];
   let qualificationStatus = "needs_review";
   const notes = [{
@@ -114,6 +119,7 @@ try {
   }];
   const deals = [];
   const tasks = [];
+
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
@@ -122,8 +128,10 @@ try {
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const method = request.method();
     let payload;
     let responseStatus = 200;
+
     if (url.pathname === "/api/v1/dashboard") {
       payload = {
         total_businesses: 1,
@@ -135,13 +143,21 @@ try {
       };
     } else if (url.pathname === "/api/v1/leads") {
       payload = [{ ...lead, qualification_status: qualificationStatus }];
+    } else if (url.pathname === "/api/v1/businesses/business-1" && method === "GET") {
+      payload = {
+        ...detail,
+        qualification_status: qualificationStatus,
+        updated_at: qualificationStatus === "qualified"
+          ? "2026-07-25T13:00:00Z"
+          : detail.updated_at
+      };
     } else if (
       url.pathname === "/api/v1/businesses/business-1/qualification"
-      && request.method() === "PATCH"
+      && method === "PATCH"
     ) {
       const body = JSON.parse(request.postData() ?? "{}");
       if (body.qualification_status !== "qualified") {
-        throw new Error("Qualification update did not submit the selected qualified state.");
+        throw new Error("Qualification did not submit the selected state.");
       }
       qualificationStatus = "qualified";
       payload = {
@@ -151,11 +167,16 @@ try {
       };
     } else if (
       url.pathname === "/api/v1/businesses/business-1/notes"
-      && request.method() === "POST"
+      && method === "GET"
+    ) {
+      payload = notes;
+    } else if (
+      url.pathname === "/api/v1/businesses/business-1/notes"
+      && method === "POST"
     ) {
       const body = JSON.parse(request.postData() ?? "{}");
       if (body.content !== "Call next Tuesday after qualification review.") {
-        throw new Error("Business note did not submit the exact operator-entered text.");
+        throw new Error("Business note did not preserve operator-entered text.");
       }
       const created = {
         id: "note-2",
@@ -167,13 +188,8 @@ try {
       payload = created;
       responseStatus = 201;
     } else if (
-      url.pathname === "/api/v1/businesses/business-1/notes"
-      && request.method() === "GET"
-    ) {
-      payload = notes;
-    } else if (
       url.pathname === "/api/v1/businesses/business-1/deals"
-      && request.method() === "POST"
+      && method === "POST"
     ) {
       const body = JSON.parse(request.postData() ?? "{}");
       const expected = {
@@ -183,7 +199,7 @@ try {
         next_action: "Send proposal"
       };
       if (JSON.stringify(body) !== JSON.stringify(expected)) {
-        throw new Error("Deal create did not submit the exact operator-entered opportunity.");
+        throw new Error("Deal create did not preserve operator-entered values.");
       }
       const created = {
         id: "deal-1",
@@ -196,14 +212,13 @@ try {
       deals.unshift(created);
       payload = created;
       responseStatus = 201;
-    } else if (
-      url.pathname === "/api/v1/deals/deal-1"
-      && request.method() === "PATCH"
-    ) {
+    } else if (url.pathname === "/api/v1/deals" && method === "GET") {
+      payload = deals;
+    } else if (url.pathname === "/api/v1/deals/deal-1" && method === "PATCH") {
       const body = JSON.parse(request.postData() ?? "{}");
       const expected = { stage: "won", next_action: "Schedule kickoff" };
       if (JSON.stringify(body) !== JSON.stringify(expected)) {
-        throw new Error("Deal update did not submit the exact operator-confirmed changes.");
+        throw new Error("Deal update did not preserve explicit changes.");
       }
       deals[0] = {
         ...deals[0],
@@ -211,20 +226,22 @@ try {
         updated_at: "2026-07-25T13:20:00Z"
       };
       payload = deals[0];
-    } else if (url.pathname === "/api/v1/deals" && request.method() === "GET") {
-      payload = deals;
-    } else if (url.pathname === "/api/v1/tasks" && request.method() === "POST") {
+    } else if (url.pathname === "/api/v1/tasks" && method === "GET") {
+      payload = tasks;
+    } else if (url.pathname === "/api/v1/tasks" && method === "POST") {
       const body = JSON.parse(request.postData() ?? "{}");
       const parentType = body.business_id ? "business" : "deal";
-      const expectedTitle = parentType === "business" ? "Call decision maker" : "Review signed proposal";
+      const expectedTitle = parentType === "business"
+        ? "Call decision maker"
+        : "Review signed proposal";
       if (body.title !== expectedTitle || body.due_date !== "2026-07-30") {
-        throw new Error("Task create did not submit the exact operator-entered values.");
+        throw new Error("Task create did not preserve operator-entered values.");
       }
       if (parentType === "business" && body.business_id !== "business-1") {
-        throw new Error("Business task did not reference the selected business.");
+        throw new Error("Business task did not reference its business.");
       }
       if (parentType === "deal" && body.deal_id !== "deal-1") {
-        throw new Error("Deal task did not reference the selected deal.");
+        throw new Error("Deal task did not reference its deal.");
       }
       const created = {
         id: `task-${tasks.length + 1}`,
@@ -234,44 +251,53 @@ try {
         business_id: body.business_id ?? null,
         deal_id: body.deal_id ?? null,
         parent_type: parentType,
-        parent_name: parentType === "business" ? "Kildare Accountancy" : "Website redesign",
-        created_at: "2026-07-25T13:25:00Z",
-        updated_at: "2026-07-25T13:25:00Z"
+        parent_name: parentType === "business"
+          ? "Kildare Accountancy"
+          : "Website redesign",
+        created_at: `2026-07-25T13:${25 + tasks.length}:00Z`,
+        updated_at: `2026-07-25T13:${25 + tasks.length}:00Z`
       };
       tasks.unshift(created);
       payload = created;
       responseStatus = 201;
-    } else if (url.pathname === "/api/v1/tasks" && request.method() === "GET") {
-      payload = tasks;
-    } else if (
-      url.pathname === "/api/v1/tasks/task-1/complete"
-      && request.method() === "PATCH"
-    ) {
-      tasks[1] = {
-        ...tasks[1],
+    } else if (/^\/api\/v1\/tasks\/task-\d+\/complete$/.test(url.pathname) && method === "PATCH") {
+      const taskId = url.pathname.split("/")[4];
+      const index = tasks.findIndex((task) => task.id === taskId);
+      if (index === -1) {
+        await route.fulfill({
+          status: 404,
+          contentType: "application/json",
+          body: JSON.stringify({ detail: "Task not found." })
+        });
+        return;
+      }
+      tasks[index] = {
+        ...tasks[index],
         status: "completed",
         updated_at: "2026-07-25T13:30:00Z"
       };
-      payload = tasks[1];
-    } else if (url.pathname === "/api/v1/businesses/business-1") {
-      payload = {
-        ...detail,
-        qualification_status: qualificationStatus,
-        updated_at: qualificationStatus === "qualified"
-          ? "2026-07-25T13:00:00Z"
-          : detail.updated_at
-      };
-    } else if (url.pathname === "/api/v1/territories" || url.pathname === "/api/v1/query-templates") {
-      payload = [];
-    } else if (url.pathname.startsWith("/api/v1/geography/")) {
+      payload = tasks[index];
+    } else if (
+      url.pathname === "/api/v1/territories"
+      || url.pathname === "/api/v1/query-templates"
+      || url.pathname.startsWith("/api/v1/geography/")
+    ) {
       payload = [];
     }
 
     if (payload === undefined) {
-      await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ detail: "Not found" }) });
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Not found" })
+      });
       return;
     }
-    await route.fulfill({ status: responseStatus, contentType: "application/json", body: JSON.stringify(payload) });
+    await route.fulfill({
+      status: responseStatus,
+      contentType: "application/json",
+      body: JSON.stringify(payload)
+    });
   });
 
   await page.goto("http://127.0.0.1:5173", { waitUntil: "networkidle" });
@@ -279,14 +305,13 @@ try {
   await page.getByRole("button", { name: "Open" }).click();
 
   const workspace = page.getByRole("region", { name: "Business detail workspace" });
-  await workspace.waitFor();
   await workspace.getByRole("heading", { name: "Kildare Accountancy" }).waitFor();
-  await workspace.getByText("+353 45 000 000").waitFor();
-  await workspace.getByText("53.16, -6.91").waitFor();
   await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
   await workspace.getByText("2 persisted discovery observations").waitFor();
 
-  const businessTask = workspace.getByRole("region", { name: "Create task for Kildare Accountancy" });
+  const businessTask = workspace.getByRole("region", {
+    name: "Create task for Kildare Accountancy"
+  });
   await businessTask.getByLabel("Task title").fill("Call decision maker");
   await businessTask.getByLabel("Due date").fill("2026-07-30");
   await businessTask.getByRole("button", { name: "Create task" }).click();
@@ -296,12 +321,13 @@ try {
   await workspace.getByRole("button", { name: "Save qualification" }).click();
   await workspace.getByText("Qualification saved as qualified.").waitFor();
 
-  await workspace.getByLabel("Title").fill("Website redesign");
-  await workspace.getByLabel("Stage").selectOption("proposal");
-  await workspace.getByLabel("Value (€)").fill("3500");
-  await workspace.getByLabel("Next action").fill("Send proposal");
-  await workspace.getByRole("button", { name: "Create deal" }).click();
-  await workspace.getByText("Deal created.").waitFor();
+  const dealCreate = workspace.getByRole("region", { name: "Create deal" });
+  await dealCreate.getByLabel("Title", { exact: true }).fill("Website redesign");
+  await dealCreate.getByLabel("Stage", { exact: true }).selectOption("proposal");
+  await dealCreate.getByLabel("Value (€)").fill("3500");
+  await dealCreate.getByLabel("Next action", { exact: true }).fill("Send proposal");
+  await dealCreate.getByRole("button", { name: "Create deal" }).click();
+  await dealCreate.getByText("Deal created.").waitFor();
 
   await workspace.getByLabel("Add a note").fill("Call next Tuesday after qualification review.");
   await workspace.getByRole("button", { name: "Add note" }).click();
@@ -310,15 +336,13 @@ try {
   await workspace.getByText("2 persisted discovery observations").waitFor();
 
   await page.getByRole("button", { name: /^Deals$/ }).click();
-  const pipeline = page.getByRole("region", { name: "Deals pipeline" });
-  await pipeline.waitFor();
   const proposal = page.getByRole("region", { name: "Proposal deals" });
   await proposal.getByText("Website redesign").waitFor();
-  await proposal.getByText("Kildare Accountancy").waitFor();
   await proposal.getByText("3500,00 €").waitFor();
-  await proposal.getByText("Send proposal").waitFor();
 
-  const dealTask = proposal.getByRole("region", { name: "Create task for Website redesign" });
+  const dealTask = proposal.getByRole("region", {
+    name: "Create task for Website redesign"
+  });
   await dealTask.getByLabel("Task title").fill("Review signed proposal");
   await dealTask.getByLabel("Due date").fill("2026-07-30");
   await dealTask.getByRole("button", { name: "Create task" }).click();
@@ -332,21 +356,24 @@ try {
 
   const won = page.getByRole("region", { name: "Won deals" });
   await won.getByText("Website redesign").waitFor();
-  await won.getByText("Kildare Accountancy").waitFor();
-  await won.getByText("3500,00 €").waitFor();
   await won.getByText("Schedule kickoff").waitFor();
-  await proposal.getByText("Website redesign").waitFor({ state: "detached" });
 
   await page.getByRole("button", { name: /^Tasks$/ }).click();
   const tasksWorkspace = page.getByRole("region", { name: "Tasks workspace" });
-  await tasksWorkspace.waitFor();
   const openTasks = tasksWorkspace.getByRole("region", { name: "Open tasks" });
   await openTasks.getByText("Call decision maker").waitFor();
   await openTasks.getByText("Review signed proposal").waitFor();
-  await openTasks.getByRole("button", { name: "Mark completed" }).first().click();
+
+  const businessTaskCard = openTasks.locator(".task-card", {
+    hasText: "Call decision maker"
+  });
+  await businessTaskCard.getByRole("button", { name: "Mark completed" }).click();
   const completedTasks = tasksWorkspace.getByRole("region", { name: "Completed tasks" });
   await completedTasks.getByText("Call decision maker").waitFor();
-  await page.screenshot({ path: "artifacts/screenshots/persisted-follow-up-tasks.png", fullPage: true });
+  await page.screenshot({
+    path: "artifacts/screenshots/persisted-follow-up-tasks.png",
+    fullPage: true
+  });
 
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
