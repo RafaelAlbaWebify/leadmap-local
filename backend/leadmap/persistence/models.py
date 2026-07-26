@@ -1,7 +1,17 @@
 from datetime import date, datetime
 from uuid import uuid4
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -57,10 +67,21 @@ class BusinessRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    locations: Mapped[list["BusinessLocationRecord"]] = relationship(back_populates="business")
-    notes: Mapped[list["BusinessNoteRecord"]] = relationship(back_populates="business", cascade="all, delete-orphan")
-    deals: Mapped[list["DealRecord"]] = relationship(back_populates="business", cascade="all, delete-orphan")
-    tasks: Mapped[list["TaskRecord"]] = relationship(back_populates="business", cascade="all, delete-orphan")
+    locations: Mapped[list["BusinessLocationRecord"]] = relationship(
+        back_populates="business"
+    )
+    notes: Mapped[list["BusinessNoteRecord"]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+    )
+    deals: Mapped[list["DealRecord"]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+    )
+    tasks: Mapped[list["TaskRecord"]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+    )
 
 
 class BusinessNoteRecord(Base):
@@ -89,7 +110,10 @@ class DealRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     business: Mapped[BusinessRecord] = relationship(back_populates="deals")
-    tasks: Mapped[list["TaskRecord"]] = relationship(back_populates="deal", cascade="all, delete-orphan")
+    tasks: Mapped[list["TaskRecord"]] = relationship(
+        back_populates="deal",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         Index("ix_deal_stage_updated", "stage", "updated_at"),
@@ -113,7 +137,10 @@ class TaskRecord(Base):
     deal: Mapped[DealRecord | None] = relationship(back_populates="tasks")
 
     __table_args__ = (
-        CheckConstraint("(business_id IS NOT NULL) != (deal_id IS NOT NULL)", name="ck_task_exactly_one_parent"),
+        CheckConstraint(
+            "(business_id IS NOT NULL) != (deal_id IS NOT NULL)",
+            name="ck_task_exactly_one_parent",
+        ),
         CheckConstraint("status IN ('open', 'completed')", name="ck_task_status"),
         Index("ix_task_status_due", "status", "due_date"),
         Index("ix_task_business_created", "business_id", "created_at"),
@@ -138,7 +165,9 @@ class BusinessLocationRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     business: Mapped[BusinessRecord] = relationship(back_populates="locations")
-    observations: Mapped[list["ObservationRecord"]] = relationship(back_populates="location")
+    observations: Mapped[list["ObservationRecord"]] = relationship(
+        back_populates="location"
+    )
 
     __table_args__ = (Index("ix_location_geo", "country_code", "administrative_area", "locality"),)
 
@@ -155,7 +184,9 @@ class SearchRunRecord(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     territory: Mapped[TerritoryRecord] = relationship(back_populates="search_runs")
-    observations: Mapped[list["ObservationRecord"]] = relationship(back_populates="search_run")
+    observations: Mapped[list["ObservationRecord"]] = relationship(
+        back_populates="search_run"
+    )
 
 
 class ObservationRecord(Base):
@@ -163,7 +194,10 @@ class ObservationRecord(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     search_run_id: Mapped[str] = mapped_column(ForeignKey("search_runs.id"), nullable=False)
-    location_id: Mapped[str] = mapped_column(ForeignKey("business_locations.id"), nullable=False)
+    location_id: Mapped[str] = mapped_column(
+        ForeignKey("business_locations.id"),
+        nullable=False,
+    )
     provider: Mapped[str] = mapped_column(String(80), nullable=False)
     provider_key: Mapped[str] = mapped_column(String(500), nullable=False)
     displayed_name: Mapped[str] = mapped_column(String(300), nullable=False)
@@ -176,7 +210,12 @@ class ObservationRecord(Base):
     location: Mapped[BusinessLocationRecord] = relationship(back_populates="observations")
 
     __table_args__ = (
-        UniqueConstraint("search_run_id", "provider", "provider_key", name="uq_observation_per_run"),
+        UniqueConstraint(
+            "search_run_id",
+            "provider",
+            "provider_key",
+            name="uq_observation_per_run",
+        ),
         Index("ix_observation_provider_identity", "provider", "provider_key"),
         Index("ix_observation_observed_at", "observed_at"),
     )
