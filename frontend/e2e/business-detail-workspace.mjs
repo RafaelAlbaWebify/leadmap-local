@@ -195,6 +195,21 @@ try {
       deals.unshift(created);
       payload = created;
       responseStatus = 201;
+    } else if (
+      url.pathname === "/api/v1/deals/deal-1"
+      && request.method() === "PATCH"
+    ) {
+      const body = JSON.parse(request.postData() ?? "{}");
+      const expected = { stage: "won", next_action: "Schedule kickoff" };
+      if (JSON.stringify(body) !== JSON.stringify(expected)) {
+        throw new Error("Deal update did not submit the exact operator-confirmed changes.");
+      }
+      deals[0] = {
+        ...deals[0],
+        ...expected,
+        updated_at: "2026-07-25T13:20:00Z"
+      };
+      payload = deals[0];
     } else if (url.pathname === "/api/v1/deals" && request.method() === "GET") {
       payload = deals;
     } else if (url.pathname === "/api/v1/businesses/business-1") {
@@ -255,7 +270,20 @@ try {
   await proposal.getByText("Kildare Accountancy").waitFor();
   await proposal.getByText("3500,00 €").waitFor();
   await proposal.getByText("Send proposal").waitFor();
-  await page.screenshot({ path: "artifacts/screenshots/deals-pipeline-workspace.png", fullPage: true });
+
+  await proposal.getByRole("button", { name: "Edit deal" }).click();
+  const editor = proposal.getByLabel("Edit Website redesign");
+  await editor.getByLabel("Stage").selectOption("won");
+  await editor.getByLabel("Next action").fill("Schedule kickoff");
+  await editor.getByRole("button", { name: "Save deal" }).click();
+
+  const won = page.getByRole("region", { name: "Won deals" });
+  await won.getByText("Website redesign").waitFor();
+  await won.getByText("Kildare Accountancy").waitFor();
+  await won.getByText("3500,00 €").waitFor();
+  await won.getByText("Schedule kickoff").waitFor();
+  await proposal.getByText("Website redesign").waitFor({ state: "detached" });
+  await page.screenshot({ path: "artifacts/screenshots/deal-stage-update-workspace.png", fullPage: true });
 
   if (consoleErrors.length > 0) {
     throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
