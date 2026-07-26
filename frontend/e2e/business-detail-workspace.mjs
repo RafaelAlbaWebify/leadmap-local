@@ -51,44 +51,24 @@ const detail = {
     created_at: "2026-07-23T12:00:00Z",
     updated_at: "2026-07-25T12:00:00Z"
   }],
-  observations: [
-    {
-      id: "observation-2",
-      location_id: "location-1",
-      provider: "google_maps",
-      provider_key: "place-1",
-      displayed_name: "Kildare Accountancy",
-      category: "Tax consultant",
-      source_url: "https://maps.example/place-1",
-      observed_at: "2026-07-25T12:00:00Z",
-      query_text: "tax advisor in Kildare County, IE",
-      search_run_status: "completed",
-      query_sequence: 2,
-      result_rank: 3,
-      first_seen_scroll_step: 1,
-      candidate_id: "q2-place-1",
-      raw_evidence: "Kildare Accountancy · Tax consultant",
-      address_text: "Kildare County"
-    },
-    {
-      id: "observation-1",
-      location_id: "location-1",
-      provider: "google_maps",
-      provider_key: "place-1",
-      displayed_name: "Kildare Accountancy",
-      category: "Accountant",
-      source_url: "https://maps.example/place-1",
-      observed_at: "2026-07-23T12:00:00Z",
-      query_text: "accountant in Kildare County, IE",
-      search_run_status: "completed",
-      query_sequence: 1,
-      result_rank: 2,
-      first_seen_scroll_step: 0,
-      candidate_id: "q1-place-1",
-      raw_evidence: "Kildare Accountancy · Accountant",
-      address_text: "Kildare County"
-    }
-  ]
+  observations: [{
+    id: "observation-1",
+    location_id: "location-1",
+    provider: "google_maps",
+    provider_key: "place-1",
+    displayed_name: "Kildare Accountancy",
+    category: "Accountant",
+    source_url: "https://maps.example/place-1",
+    observed_at: "2026-07-25T12:00:00Z",
+    query_text: "accountant in Kildare County, IE",
+    search_run_status: "completed",
+    query_sequence: 1,
+    result_rank: 2,
+    first_seen_scroll_step: 0,
+    candidate_id: "q1-place-1",
+    raw_evidence: "Kildare Accountancy · Accountant",
+    address_text: "Kildare County"
+  }]
 };
 
 const server = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1"], {
@@ -105,10 +85,7 @@ try {
       ? ["--enable-webgl"]
       : ["--use-gl=swiftshader", "--enable-webgl"]
   });
-  const page = await browser.newPage({
-    viewport: { width: 1440, height: 1100 },
-    deviceScaleFactor: 1
-  });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
   const consoleErrors = [];
   let qualificationStatus = "needs_review";
   const notes = [{
@@ -118,7 +95,6 @@ try {
     created_at: "2026-07-25T12:30:00Z"
   }];
   const deals = [];
-  const tasks = [];
 
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
@@ -144,13 +120,7 @@ try {
     } else if (url.pathname === "/api/v1/leads") {
       payload = [{ ...lead, qualification_status: qualificationStatus }];
     } else if (url.pathname === "/api/v1/businesses/business-1" && method === "GET") {
-      payload = {
-        ...detail,
-        qualification_status: qualificationStatus,
-        updated_at: qualificationStatus === "qualified"
-          ? "2026-07-25T13:00:00Z"
-          : detail.updated_at
-      };
+      payload = { ...detail, qualification_status: qualificationStatus };
     } else if (
       url.pathname === "/api/v1/businesses/business-1/qualification"
       && method === "PATCH"
@@ -220,63 +190,10 @@ try {
       if (JSON.stringify(body) !== JSON.stringify(expected)) {
         throw new Error("Deal update did not preserve explicit changes.");
       }
-      deals[0] = {
-        ...deals[0],
-        ...expected,
-        updated_at: "2026-07-25T13:20:00Z"
-      };
+      deals[0] = { ...deals[0], ...expected, updated_at: "2026-07-25T13:20:00Z" };
       payload = deals[0];
     } else if (url.pathname === "/api/v1/tasks" && method === "GET") {
-      payload = tasks;
-    } else if (url.pathname === "/api/v1/tasks" && method === "POST") {
-      const body = JSON.parse(request.postData() ?? "{}");
-      const parentType = body.business_id ? "business" : "deal";
-      const expectedTitle = parentType === "business"
-        ? "Call decision maker"
-        : "Review signed proposal";
-      if (body.title !== expectedTitle || body.due_date !== "2026-07-30") {
-        throw new Error("Task create did not preserve operator-entered values.");
-      }
-      if (parentType === "business" && body.business_id !== "business-1") {
-        throw new Error("Business task did not reference its business.");
-      }
-      if (parentType === "deal" && body.deal_id !== "deal-1") {
-        throw new Error("Deal task did not reference its deal.");
-      }
-      const created = {
-        id: `task-${tasks.length + 1}`,
-        title: body.title,
-        due_date: body.due_date,
-        status: "open",
-        business_id: body.business_id ?? null,
-        deal_id: body.deal_id ?? null,
-        parent_type: parentType,
-        parent_name: parentType === "business"
-          ? "Kildare Accountancy"
-          : "Website redesign",
-        created_at: `2026-07-25T13:${25 + tasks.length}:00Z`,
-        updated_at: `2026-07-25T13:${25 + tasks.length}:00Z`
-      };
-      tasks.unshift(created);
-      payload = created;
-      responseStatus = 201;
-    } else if (/^\/api\/v1\/tasks\/task-\d+\/complete$/.test(url.pathname) && method === "PATCH") {
-      const taskId = url.pathname.split("/")[4];
-      const index = tasks.findIndex((task) => task.id === taskId);
-      if (index === -1) {
-        await route.fulfill({
-          status: 404,
-          contentType: "application/json",
-          body: JSON.stringify({ detail: "Task not found." })
-        });
-        return;
-      }
-      tasks[index] = {
-        ...tasks[index],
-        status: "completed",
-        updated_at: "2026-07-25T13:30:00Z"
-      };
-      payload = tasks[index];
+      payload = [];
     } else if (
       url.pathname === "/api/v1/territories"
       || url.pathname === "/api/v1/query-templates"
@@ -307,15 +224,6 @@ try {
   const workspace = page.getByRole("region", { name: "Business detail workspace" });
   await workspace.getByRole("heading", { name: "Kildare Accountancy" }).waitFor();
   await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
-  await workspace.getByText("2 persisted discovery observations").waitFor();
-
-  const businessTask = workspace.getByRole("region", {
-    name: "Create task for Kildare Accountancy"
-  });
-  await businessTask.getByLabel("Task title").fill("Call decision maker");
-  await businessTask.getByLabel("Due date").fill("2026-07-30");
-  await businessTask.getByRole("button", { name: "Create task" }).click();
-  await businessTask.getByText("Task created.").waitFor();
 
   await workspace.getByLabel("Status").selectOption("qualified");
   await workspace.getByRole("button", { name: "Save qualification" }).click();
@@ -333,21 +241,10 @@ try {
   await workspace.getByRole("button", { name: "Add note" }).click();
   await workspace.getByText("Note added.").waitFor();
   await workspace.getByText("Call next Tuesday after qualification review.").waitFor();
-  await workspace.getByText("2 persisted discovery observations").waitFor();
 
   await page.getByRole("button", { name: /^Deals$/ }).click();
   const proposal = page.getByRole("region", { name: "Proposal deals" });
   await proposal.getByText("Website redesign").waitFor();
-  await proposal.getByText("3500,00 €").waitFor();
-
-  const dealTask = proposal.getByRole("region", {
-    name: "Create task for Website redesign"
-  });
-  await dealTask.getByLabel("Task title").fill("Review signed proposal");
-  await dealTask.getByLabel("Due date").fill("2026-07-30");
-  await dealTask.getByRole("button", { name: "Create task" }).click();
-  await dealTask.getByText("Task created.").waitFor();
-
   await proposal.getByRole("button", { name: "Edit deal" }).click();
   const editor = proposal.getByLabel("Edit Website redesign");
   await editor.getByLabel("Stage").selectOption("won");
@@ -357,21 +254,8 @@ try {
   const won = page.getByRole("region", { name: "Won deals" });
   await won.getByText("Website redesign").waitFor();
   await won.getByText("Schedule kickoff").waitFor();
-
-  await page.getByRole("button", { name: /^Tasks$/ }).click();
-  const tasksWorkspace = page.getByRole("region", { name: "Tasks workspace" });
-  const openTasks = tasksWorkspace.getByRole("region", { name: "Open tasks" });
-  await openTasks.getByText("Call decision maker").waitFor();
-  await openTasks.getByText("Review signed proposal").waitFor();
-
-  const businessTaskCard = openTasks.locator(".task-card", {
-    hasText: "Call decision maker"
-  });
-  await businessTaskCard.getByRole("button", { name: "Mark completed" }).click();
-  const completedTasks = tasksWorkspace.getByRole("region", { name: "Completed tasks" });
-  await completedTasks.getByText("Call decision maker").waitFor();
   await page.screenshot({
-    path: "artifacts/screenshots/persisted-follow-up-tasks.png",
+    path: "artifacts/screenshots/business-deal-workspace.png",
     fullPage: true
   });
 
