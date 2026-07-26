@@ -29,6 +29,7 @@ import { CandidateReview } from "./CandidateReview";
 import { DealsWorkspace } from "./DealsWorkspace";
 import { GeographyWorkspace } from "./GeographyWorkspace";
 import { QueryGroupReview } from "./QueryGroupReview";
+import { TasksWorkspace } from "./TasksWorkspace";
 import type { AssistedSession, AssistedSessionReview, Lead } from "./types";
 
 type View = "Markets" | "Discover" | "Businesses" | "Deals" | "Tasks" | "Insights" | "Territories";
@@ -379,7 +380,7 @@ export function App() {
 
         {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted businesses</p></div></div><LeadTable leads={leads.data ?? []} /></section>}
         {view === "Deals" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Deals pipeline</h2><p>Explicit commercial opportunities created from qualified businesses.</p></div></div><DealsWorkspace /></section>}
-        {view === "Tasks" && <PlaceholderPage title="Tasks and follow-up" description="Research, outreach and proposal tasks will be linked to businesses and deals." />}
+        {view === "Tasks" && <section className="panel page-panel"><TasksWorkspace /></section>}
         {view === "Insights" && <PlaceholderPage title="Market and pipeline insights" description="Territory, sector, discovery and conversion metrics will share one reporting model." />}
 
         {(dashboard.isError || territories.isError || templates.isError || leads.isError) && <div className="notice error">The backend is unavailable or returned an invalid response.</div>}
