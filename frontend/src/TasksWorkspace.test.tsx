@@ -6,6 +6,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskCreate, TasksWorkspace } from "./TasksWorkspace";
 import type { Task } from "./taskApi";
 
+const taskApiMocks = vi.hoisted(() => ({
+  createTask: vi.fn(),
+  fetchTasks: vi.fn(),
+  completeTask: vi.fn()
+}));
+
+vi.mock("./taskApi", () => taskApiMocks);
+
 function renderWithClient(ui: ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
@@ -27,16 +35,15 @@ const openTask: Task = {
 };
 
 describe("task workflow", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    taskApiMocks.fetchTasks.mockResolvedValue([]);
+  });
 
   it("creates a business task and clears only after success", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(openTask), {
-        status: 201,
-        headers: { "Content-Type": "application/json" }
-      })
-    );
+    taskApiMocks.createTask.mockResolvedValue(openTask);
     renderWithClient(<TaskCreate businessId="business-1" />);
+
     fireEvent.change(screen.getByLabelText("Task title"), {
       target: { value: "Call decision maker" }
     });
@@ -45,20 +52,20 @@ describe("task workflow", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create task" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Task created.");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
+    await waitFor(() => expect(taskApiMocks.createTask).toHaveBeenCalledWith({
       title: "Call decision maker",
       due_date: "2026-07-30",
       business_id: "business-1"
-    });
+    }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Task created.");
     expect(screen.getByLabelText("Task title")).toHaveValue("");
     expect(screen.getByLabelText("Due date")).toHaveValue("");
   });
 
   it("retains entered task values after failure", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("failed", { status: 500 }));
+    taskApiMocks.createTask.mockRejectedValue(new Error("failed"));
     renderWithClient(<TaskCreate dealId="deal-1" />);
+
     fireEvent.change(screen.getByLabelText("Task title"), {
       target: { value: "Review proposal" }
     });
@@ -66,6 +73,7 @@ describe("task workflow", () => {
       target: { value: "2026-08-01" }
     });
     fireEvent.click(screen.getByRole("button", { name: "Create task" }));
+
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Your entered values are retained"
     );
@@ -79,20 +87,14 @@ describe("task workflow", () => {
       status: "completed",
       updated_at: "2026-07-26T13:00:00Z"
     };
-    const fetchMock = vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify([openTask]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" }
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(completed), {
-        status: 200,
-        headers: { "Content-Type": "application/json" }
-      }));
+    taskApiMocks.fetchTasks.mockResolvedValue([openTask]);
+    taskApiMocks.completeTask.mockResolvedValue(completed);
     renderWithClient(<TasksWorkspace />);
+
     const open = await screen.findByRole("region", { name: "Open tasks" });
     fireEvent.click(within(open).getByRole("button", { name: "Mark completed" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/tasks/task-1/complete");
+
+    await waitFor(() => expect(taskApiMocks.completeTask).toHaveBeenCalledWith("task-1"));
     const completedRegion = await screen.findByRole("region", {
       name: "Completed tasks"
     });
