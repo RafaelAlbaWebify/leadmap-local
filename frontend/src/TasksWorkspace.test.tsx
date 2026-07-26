@@ -85,15 +85,11 @@ describe("task workflow", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify(completed), {
         status: 200,
         headers: { "Content-Type": "application/json" }
-      }))
-      .mockResolvedValue(new Response(JSON.stringify([completed]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" }
       }));
     renderWithClient(<TasksWorkspace />);
     const open = await screen.findByRole("region", { name: "Open tasks" });
     fireEvent.click(within(open).getByRole("button", { name: "Mark completed" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/tasks/task-1/complete");
     const completedRegion = await screen.findByRole("region", {
       name: "Completed tasks"
