@@ -85,7 +85,8 @@ try {
   await page.getByRole("button", { name: /^Insights$/ }).click();
   const workspace = page.getByRole("region", { name: "Operational insights" });
 
-  await workspace.getByText("10700,00 €", { exact: true }).waitFor();
+  const enteredValue = workspace.locator(".metric-card", { hasText: "ENTERED VALUE" });
+  await enteredValue.getByText(/10[.\s\u00a0]?700,00\s?€/).waitFor();
   await workspace.getByRole("region", { name: "Deal stage distribution" }).getByText("Proposal").waitFor();
   await workspace.getByRole("region", { name: "Open task distribution" }).getByText("Business tasks").waitFor();
   await workspace.getByRole("region", { name: "Attention list" }).getByText("Prepare SEO audit").waitFor();
