@@ -1,1 +1,0 @@
-"""Market indicator artifact support."""
