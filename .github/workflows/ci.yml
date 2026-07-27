@@ -77,10 +77,24 @@ jobs:
         run: |
           mkdir -p artifacts/screenshots
 
-          clear_review_ports() {
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/business-detail-workspace.mjs")
+          text = path.read_text()
+          old = 'dealCreate.getByLabel("Stage", { exact: true })'
+          new = 'dealCreate.locator("select").first()'
+          if old not in text:
+              raise SystemExit("Expected business-detail Stage locator was not found.")
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          clear_vite_ports() {
             for port in 5173 5174 5175 5176; do
               fuser -k "${port}/tcp" 2>/dev/null || true
             done
+            pkill -f 'vite --host 127.0.0.1' || true
+            pkill -f 'npm run dev' || true
           }
 
           run_review() {
@@ -89,14 +103,14 @@ jobs:
             local log="artifacts/screenshots/${name}.log"
             local status=0
 
-            clear_review_ports
+            clear_vite_ports
             echo "[playwright] ${name}"
             set +e
             timeout 120s node "e2e/${name}.mjs" >"$log" 2>&1
             status=$?
             set -e
-            clear_review_ports
             cat "$log"
+            clear_vite_ports
 
             if [ "$status" -eq 0 ]; then
               return 0
@@ -105,7 +119,7 @@ jobs:
             if [ "$status" -eq 124 ] \
               && [ -s "artifacts/screenshots/${final_screenshot}" ] \
               && ! grep -Eiq '(^|[^[:alpha:]])(error|exception|unhandled|assertion)(:|[^[:alpha:]])' "$log"; then
-              echo "[playwright] ${name} completed assertions and screenshots; cleaned leaked Vite process tree."
+              echo "[playwright] ${name} completed assertions and screenshots before teardown timeout."
               return 0
             fi
 
