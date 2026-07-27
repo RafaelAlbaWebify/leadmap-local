@@ -27,6 +27,18 @@ const proposalDeal = {
   updated_at: "2026-07-25T14:00:00Z"
 };
 
+const leadDeal = {
+  id: "deal-2",
+  business_id: "business-2",
+  business_name: "Alpha Legal",
+  title: "Support retainer",
+  stage: "lead",
+  value_eur_cents: 800000,
+  next_action: "Book discovery call",
+  created_at: "2026-07-24T14:00:00Z",
+  updated_at: "2026-07-24T14:00:00Z"
+};
+
 describe("deal workflow", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -126,9 +138,9 @@ describe("deal workflow", () => {
       next_action: "Schedule kickoff"
     });
     const won = await screen.findByRole("region", { name: "Won deals" });
-    expect(within(won).getByText("Website redesign")).toBeInTheDocument();
+    expect(within(won).getByText("Website redesign", { exact: true })).toBeInTheDocument();
     expect(within(won).getByText("Schedule kickoff")).toBeInTheDocument();
-    expect(within(proposal).queryByText("Website redesign")).not.toBeInTheDocument();
+    expect(within(proposal).queryByText("Website redesign", { exact: true })).not.toBeInTheDocument();
   });
 
   it("retains deal edits after a failed update", async () => {
@@ -166,9 +178,50 @@ describe("deal workflow", () => {
     renderWithClient(<DealsWorkspace />);
 
     const proposal = await screen.findByRole("region", { name: "Proposal deals" });
-    expect(within(proposal).getByText("Website redesign")).toBeInTheDocument();
+    expect(within(proposal).getByText("Website redesign", { exact: true })).toBeInTheDocument();
     expect(within(proposal).getByText("Kildare Accountancy")).toBeInTheDocument();
     expect(within(proposal).getByText("3500,00 €")).toBeInTheDocument();
     expect(within(proposal).getByText("Send proposal")).toBeInTheDocument();
+  });
+
+  it("switches to list view and filters persisted deals", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify([proposalDeal, leadDeal]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    renderWithClient(<DealsWorkspace />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "List" }));
+    const list = screen.getByRole("region", { name: "Deal list" });
+    expect(within(list).getByText("Website redesign", { exact: true })).toBeInTheDocument();
+    expect(within(list).getByText("Support retainer", { exact: true })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Search deals"), { target: { value: "alpha" } });
+    expect(within(list).queryByText("Website redesign", { exact: true })).not.toBeInTheDocument();
+    expect(within(list).getByText("Support retainer", { exact: true })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Search deals"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Stage"), { target: { value: "proposal" } });
+    expect(within(list).getByText("Website redesign", { exact: true })).toBeInTheDocument();
+    expect(within(list).queryByText("Support retainer", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("sorts list deals by highest value", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify([proposalDeal, leadDeal]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    renderWithClient(<DealsWorkspace />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "List" }));
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "value_desc" } });
+
+    const cards = within(screen.getByRole("region", { name: "Deal list" })).getAllByRole("article");
+    expect(within(cards[0]).getByText("Support retainer", { exact: true })).toBeInTheDocument();
+    expect(within(cards[1]).getByText("Website redesign", { exact: true })).toBeInTheDocument();
   });
 });
