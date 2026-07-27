@@ -26,7 +26,14 @@ jobs:
       - name: Install
         run: pip install -e .[dev]
       - name: Focused tests
-        run: pytest backend/tests/test_market_indicators.py
+        run: pytest backend/tests/test_market_indicators.py --junitxml=artifacts/market-indicator-tests.xml
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-indicator-tests-${{ runner.os }}
+          path: artifacts/market-indicator-tests.xml
+          if-no-files-found: error
       - name: Import approved fixture
         run: python scripts/install-market-indicators.py backend/tests/fixtures/market-indicators-approved.json --directory artifacts/market-indicators
       - uses: actions/upload-artifact@v4
