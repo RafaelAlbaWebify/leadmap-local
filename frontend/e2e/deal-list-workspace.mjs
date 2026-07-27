@@ -96,20 +96,21 @@ try {
   await page.getByRole("button", { name: /^Deals$/ }).click();
   const workspace = page.getByRole("region", { name: "Deals workspace" });
   await workspace.getByRole("button", { name: "List" }).click();
+  const controls = workspace.locator(".deal-list-controls");
   const list = workspace.getByRole("region", { name: "Deal list" });
 
-  await workspace.getByLabel("Sort by").selectOption("value_desc");
+  await controls.getByLabel("Sort by").selectOption("value_desc");
   const rows = list.locator(".deal-card");
   if ((await rows.first().innerText()).includes("SEO retainer") === false) {
     throw new Error("Highest-value deal was not sorted first.");
   }
 
-  await workspace.getByLabel("Search deals").fill("Galway");
+  await controls.getByLabel("Search deals").fill("Galway");
   await list.getByText("SEO retainer", { exact: true }).waitFor();
   if (await list.getByText("Website redesign", { exact: true }).count()) {
     throw new Error("Text filter retained a non-matching deal.");
   }
-  await workspace.getByLabel("Stage").selectOption("discovery");
+  await controls.getByLabel("Stage").selectOption("discovery");
 
   const row = rows.filter({ hasText: "SEO retainer" });
   await row.getByRole("button", { name: "Edit deal" }).click();
@@ -118,7 +119,7 @@ try {
   await editor.getByLabel("Next action").fill("Send tailored audit");
   await editor.getByRole("button", { name: "Save deal" }).click();
 
-  await workspace.getByLabel("Stage").selectOption("all");
+  await controls.getByLabel("Stage").selectOption("all");
   await row.getByText("Send tailored audit").waitFor();
 
   const task = row.getByRole("region", { name: "Create task for SEO retainer" });
@@ -127,7 +128,7 @@ try {
   await task.getByRole("button", { name: "Create task" }).click();
   await task.getByText("Task created.").waitFor();
 
-  await workspace.getByLabel("Search deals").fill("");
+  await controls.getByLabel("Search deals").fill("");
   await page.screenshot({ path: "artifacts/screenshots/deal-list-workspace.png", fullPage: true });
 
   if (consoleErrors.length > 0) throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
