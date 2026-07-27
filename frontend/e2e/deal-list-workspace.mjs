@@ -117,6 +117,8 @@ try {
   await editor.getByLabel("Stage").selectOption("proposal");
   await editor.getByLabel("Next action").fill("Send tailored audit");
   await editor.getByRole("button", { name: "Save deal" }).click();
+
+  await workspace.getByLabel("Stage").selectOption("all");
   await row.getByText("Send tailored audit").waitFor();
 
   const task = row.getByRole("region", { name: "Create task for SEO retainer" });
@@ -125,7 +127,6 @@ try {
   await task.getByRole("button", { name: "Create task" }).click();
   await task.getByText("Task created.").waitFor();
 
-  await workspace.getByLabel("Stage").selectOption("all");
   await workspace.getByLabel("Search deals").fill("");
   await page.screenshot({ path: "artifacts/screenshots/deal-list-workspace.png", fullPage: true });
 
