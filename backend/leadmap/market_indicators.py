@@ -18,11 +18,7 @@ def _required_text(value: object, field: str) -> str:
 
 
 def _canonical_payload(document: dict[str, object]) -> bytes:
-    payload = {
-        key: value
-        for key, value in document.items()
-        if key != "checksum_sha256"
-    }
+    payload = {key: value for key, value in document.items() if key != "checksum_sha256"}
     return json.dumps(
         payload,
         ensure_ascii=False,
@@ -36,9 +32,7 @@ def validate_market_indicator_artifact(document: object) -> dict[str, object]:
         raise MarketIndicatorValidationError("Artifact must be a JSON object.")
     result = deepcopy(document)
     if result.get("schema_version") != "1":
-        raise MarketIndicatorValidationError(
-            "Unsupported market indicator schema version."
-        )
+        raise MarketIndicatorValidationError("Unsupported market indicator schema version.")
 
     source = result.get("source")
     if not isinstance(source, dict):
@@ -56,17 +50,13 @@ def validate_market_indicator_artifact(document: object) -> dict[str, object]:
 
     records = result.get("records")
     if not isinstance(records, list) or not records:
-        raise MarketIndicatorValidationError(
-            "records must contain at least one item."
-        )
+        raise MarketIndicatorValidationError("records must contain at least one item.")
 
     identities: set[tuple[str, str, str]] = set()
     normalized: list[dict[str, object]] = []
     for index, item in enumerate(records):
         if not isinstance(item, dict):
-            raise MarketIndicatorValidationError(
-                f"records[{index}] must be an object."
-            )
+            raise MarketIndicatorValidationError(f"records[{index}] must be an object.")
         record = dict(item)
         territory_key = _required_text(
             record.get("territory_key"),
@@ -127,17 +117,12 @@ def install_market_indicator_artifact(
     directory.mkdir(parents=True, exist_ok=True)
     checksum = str(validated["checksum_sha256"])
     target = directory / f"{checksum}.json"
-    encoded = (
-        json.dumps(validated, ensure_ascii=False, sort_keys=True, indent=2)
-        + "\n"
-    )
+    encoded = json.dumps(validated, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     if target.exists():
         stored = json.loads(target.read_text(encoding="utf-8"))
         existing = validate_market_indicator_artifact(stored)
         if existing != validated:
-            raise MarketIndicatorValidationError(
-                "Installed checksum points to different content."
-            )
+            raise MarketIndicatorValidationError("Installed checksum points to different content.")
         return existing
     target.write_text(encoded, encoding="utf-8")
     return validated
@@ -155,9 +140,7 @@ def load_market_indicator_artifact(
     document = json.loads(path.read_text(encoding="utf-8"))
     validated = validate_market_indicator_artifact(document)
     if validated["checksum_sha256"] != checksum_sha256:
-        raise MarketIndicatorValidationError(
-            "Artifact filename and checksum differ."
-        )
+        raise MarketIndicatorValidationError("Artifact filename and checksum differ.")
     return validated
 
 
