@@ -85,9 +85,10 @@ jobs:
 
             echo "[playwright] ${name}"
             set +e
-            timeout 120s node "e2e/${name}.mjs" 2>&1 | tee "$log"
-            status=${PIPESTATUS[0]}
+            timeout 120s node "e2e/${name}.mjs" >"$log" 2>&1
+            status=$?
             set -e
+            cat "$log"
 
             if [ "$status" -eq 0 ]; then
               return 0
