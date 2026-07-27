@@ -2,17 +2,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-from backend.leadmap.geography.diagnostics import build_geography_diagnostics
-from backend.leadmap.geography.validation import BoundaryValidationError
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from backend.leadmap.geography.diagnostics import build_geography_diagnostics  # noqa: E402
+from backend.leadmap.geography.validation import BoundaryValidationError  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Compare an installed canonical geography artifact with its derived map payload."
     )
-    parser.add_argument("artifact", type=Path, help="Path to a canonical geography artifact JSON file.")
+    parser.add_argument(
+        "artifact",
+        type=Path,
+        help="Path to a canonical geography artifact JSON file.",
+    )
     parser.add_argument("--output", type=Path, help="Optional JSON output file.")
     return parser.parse_args()
 
