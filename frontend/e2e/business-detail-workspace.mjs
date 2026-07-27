@@ -239,7 +239,7 @@ try {
 
   const workspace = page.getByRole("region", { name: "Business detail workspace" });
   await workspace.waitFor();
-  await workspace.getByRole("heading", { name: "Kildare Accountancy" }).waitFor();
+  await workspace.getByRole("heading", { name: "Kildare Accountancy", exact: true }).waitFor();
   await workspace.getByText("+353 45 000 000").waitFor();
   await workspace.getByText("53.16, -6.91").waitFor();
   await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
