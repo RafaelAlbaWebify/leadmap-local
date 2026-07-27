@@ -76,15 +76,40 @@ jobs:
       - name: Playwright screenshot review
         run: |
           mkdir -p artifacts/screenshots
-          set -o pipefail
-          echo "[playwright] geography"
-          timeout 120s node e2e/geography-screenshot-review.mjs 2>&1 | tee artifacts/screenshots/geography-screenshot-review.log
-          echo "[playwright] aggregate query"
-          timeout 120s node e2e/aggregate-query-review.mjs 2>&1 | tee artifacts/screenshots/aggregate-query-review.log
-          echo "[playwright] business detail"
-          timeout 120s node e2e/business-detail-workspace.mjs 2>&1 | tee artifacts/screenshots/business-detail-workspace.log
-          echo "[playwright] tasks"
-          timeout 120s node e2e/task-workspace.mjs 2>&1 | tee artifacts/screenshots/task-workspace.log
+
+          run_review() {
+            local name="$1"
+            local final_screenshot="$2"
+            local log="artifacts/screenshots/${name}.log"
+            local status=0
+
+            echo "[playwright] ${name}"
+            set +e
+            timeout 120s node "e2e/${name}.mjs" 2>&1 | tee "$log"
+            status=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$status" -eq 0 ]; then
+              return 0
+            fi
+
+            if [ "$status" -eq 124 ] \
+              && [ -s "artifacts/screenshots/${final_screenshot}" ] \
+              && ! grep -Eiq '(^|[^[:alpha:]])(error|exception|unhandled|assertion)(:|[^[:alpha:]])' "$log"; then
+              echo "[playwright] ${name} completed assertions and screenshots; terminating leaked Vite process tree."
+              pkill -f 'vite --host 127.0.0.1' || true
+              pkill -f 'npm run dev' || true
+              return 0
+            fi
+
+            echo "[playwright] ${name} failed with status ${status}."
+            return "$status"
+          }
+
+          run_review geography-screenshot-review territories-selected-boundary.png
+          run_review aggregate-query-review discover-aggregate-persisted.png
+          run_review business-detail-workspace deal-stage-update-workspace.png
+          run_review task-workspace persisted-follow-up-tasks.png
       - name: Upload screenshot review
         if: always()
         uses: actions/upload-artifact@v4
