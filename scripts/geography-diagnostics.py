@@ -16,8 +16,7 @@ from backend.leadmap.geography.validation import BoundaryValidationError  # noqa
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Compare an installed canonical geography artifact with its "
-            "derived map payload."
+            "Compare an installed canonical geography artifact with its derived map payload."
         )
     )
     parser.add_argument(
@@ -34,9 +33,7 @@ def main() -> int:
     try:
         document = json.loads(args.artifact.read_text(encoding="utf-8"))
         if not isinstance(document, dict):
-            raise BoundaryValidationError(
-                "Geographic artifact root must be a JSON object."
-            )
+            raise BoundaryValidationError("Geographic artifact root must be a JSON object.")
         result = build_geography_diagnostics(document).to_dict()
     except (OSError, json.JSONDecodeError, BoundaryValidationError) as exc:
         raise SystemExit(f"Geography diagnostics failed: {exc}") from exc
