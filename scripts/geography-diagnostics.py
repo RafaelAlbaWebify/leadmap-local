@@ -15,7 +15,9 @@ from backend.leadmap.geography.validation import BoundaryValidationError  # noqa
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compare an installed canonical geography artifact with its derived map payload."
+        description=(
+            "Compare an installed canonical geography artifact with its derived map payload."
+        )
     )
     parser.add_argument(
         "artifact",
