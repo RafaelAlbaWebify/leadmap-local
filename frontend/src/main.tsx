@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { App } from "./App";
 import "./styles.css";
 import "./query-checklist.css";
+import "./insights.css";
 
 const queryClient = new QueryClient();
 

@@ -28,6 +28,7 @@ import { BusinessWorkspace } from "./BusinessWorkspace";
 import { CandidateReview } from "./CandidateReview";
 import { DealsWorkspace } from "./DealsWorkspace";
 import { GeographyWorkspace } from "./GeographyWorkspace";
+import { InsightsWorkspace } from "./InsightsWorkspace";
 import { QueryGroupReview } from "./QueryGroupReview";
 import { TasksWorkspace } from "./TasksWorkspace";
 import type { AssistedSession, AssistedSessionReview, Lead } from "./types";
@@ -57,7 +58,7 @@ const pageDescription: Record<View, string> = {
   Businesses: "Review persisted business observations and qualification evidence.",
   Deals: "Track commercial opportunities created from qualified businesses.",
   Tasks: "Keep research, outreach and follow-up work visible.",
-  Insights: "Understand which markets and prospecting activity are producing results.",
+  Insights: "Understand current business, pipeline and follow-up activity from persisted records.",
   Territories: "Inspect validated boundaries and configured Irish discovery areas."
 };
 
@@ -73,17 +74,6 @@ function MetricCard({ label, value, hint }: { label: string; value: number; hint
 
 function LeadTable({ leads }: { leads: Lead[] }) {
   return <BusinessWorkspace leads={leads} />;
-}
-
-function PlaceholderPage({ title, description }: { title: string; description: string }) {
-  return (
-    <section className="panel page-panel empty-module">
-      <span className="badge neutral">Planned module</span>
-      <h2>{title}</h2>
-      <p>{description}</p>
-      <div className="empty-state">The application shell is ready. Persistent records and actions arrive in the next vertical slice.</div>
-    </section>
-  );
 }
 
 export function App() {
@@ -381,7 +371,7 @@ export function App() {
         {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted businesses</p></div></div><LeadTable leads={leads.data ?? []} /></section>}
         {view === "Deals" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Deals pipeline</h2><p>Explicit commercial opportunities created from qualified businesses.</p></div></div><DealsWorkspace /></section>}
         {view === "Tasks" && <section className="panel page-panel"><TasksWorkspace /></section>}
-        {view === "Insights" && <PlaceholderPage title="Market and pipeline insights" description="Territory, sector, discovery and conversion metrics will share one reporting model." />}
+        {view === "Insights" && <InsightsWorkspace />}
 
         {(dashboard.isError || territories.isError || templates.isError || leads.isError) && <div className="notice error">The backend is unavailable or returned an invalid response.</div>}
       </main>

@@ -118,6 +118,7 @@ jobs:
           run_review business-detail-workspace deal-stage-update-workspace.png
           run_review task-workspace persisted-follow-up-tasks.png
           run_review deal-list-workspace deal-list-workspace.png
+          run_review operational-insights operational-insights.png
       - name: Upload screenshot review
         if: always()
         uses: actions/upload-artifact@v4
@@ -170,6 +171,7 @@ jobs:
           node e2e/business-detail-workspace.mjs
           node e2e/task-workspace.mjs
           node e2e/deal-list-workspace.mjs
+          node e2e/operational-insights.mjs
       - name: Upload Windows screenshots
         if: always()
         uses: actions/upload-artifact@v4
