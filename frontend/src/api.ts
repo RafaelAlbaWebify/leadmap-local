@@ -76,7 +76,7 @@ export function fetchGeographyArtifacts(): Promise<GeographyArtifactSummary[]> {
 }
 
 export function fetchGeographyArtifact(checksumSha256: string): Promise<GeographyArtifact> {
-  return requestJson(`/api/v1/geography/artifacts/${checksumSha256}`);
+  return requestJson(`/api/v1/geography/artifacts/${checksumSha256}/map`);
 }
 
 export function fetchTerritoryBoundaryLinks(): Promise<TerritoryBoundaryLink[]> {
