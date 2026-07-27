@@ -47,16 +47,25 @@ def get_market_indicator_directory() -> Path:
     return Path(get_settings().market_indicator_artifact_dir)
 
 
-MarketIndicatorDirectoryDependency = Annotated[Path, Depends(get_market_indicator_directory)]
+MarketIndicatorDirectoryDependency = Annotated[
+    Path,
+    Depends(get_market_indicator_directory),
+]
 
 
 def _load(checksum_sha256: str, directory: Path) -> dict[str, object]:
     try:
         return load_market_indicator_artifact(directory, checksum_sha256)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Market indicator artifact not found.") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Market indicator artifact not found.",
+        ) from exc
     except (MarketIndicatorValidationError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get("/artifacts", response_model=list[MarketIndicatorArtifactSummaryResponse])
@@ -66,8 +75,14 @@ def get_market_indicator_catalog(
     try:
         artifacts = list_market_indicator_artifacts(directory)
     except (MarketIndicatorValidationError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
-    return [MarketIndicatorArtifactSummaryResponse.model_validate(item) for item in artifacts]
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+    return [
+        MarketIndicatorArtifactSummaryResponse.model_validate(item)
+        for item in artifacts
+    ]
 
 
 @router.get(
@@ -83,8 +98,15 @@ def get_territory_market_indicators(
     document = _load(checksum_sha256, directory)
     source = document["source"]
     if not isinstance(source, dict):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Artifact source is invalid.")
-    values = territory_indicator_values(document, territory_key=territory_key, sector_key=sector_key)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Artifact source is invalid.",
+        )
+    values = territory_indicator_values(
+        document,
+        territory_key=territory_key,
+        sector_key=sector_key,
+    )
     response: list[MarketIndicatorValueResponse] = []
     for item in values:
         payload: dict[str, Any] = {
