@@ -8,15 +8,19 @@ MAP_SIMPLIFICATION_TOLERANCE = 0.0015
 
 
 def _coordinate(value: object) -> tuple[float, float] | None:
-    if not isinstance(value, (list, tuple)) or len(value) < 2:
+    if not isinstance(value, list | tuple) or len(value) < 2:
         return None
     x, y = value[0], value[1]
-    if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+    if not isinstance(x, int | float) or not isinstance(y, int | float):
         return None
     return float(x), float(y)
 
 
-def simplify_ring(ring: object, *, tolerance: float = MAP_SIMPLIFICATION_TOLERANCE) -> list[list[float]]:
+def simplify_ring(
+    ring: object,
+    *,
+    tolerance: float = MAP_SIMPLIFICATION_TOLERANCE,
+) -> list[list[float]]:
     if not isinstance(ring, list) or len(ring) < 4:
         raise BoundaryValidationError("Geographic ring must contain at least four coordinates.")
 
