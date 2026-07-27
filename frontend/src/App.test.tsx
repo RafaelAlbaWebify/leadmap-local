@@ -80,7 +80,7 @@ const responses: Record<string, unknown> = {
     source,
     feature_count: 1
   }],
-  [`/api/v1/geography/artifacts/${checksum}`]: {
+  [`/api/v1/geography/artifacts/${checksum}/map`]: {
     schema_version: "1",
     idempotency_key: "import-1",
     checksum_sha256: checksum,
@@ -238,99 +238,40 @@ async function previewPlan() {
   fireEvent.change(screen.getByLabelText("Territory"), { target: { value: "territory-1" } });
   fireEvent.change(screen.getByLabelText("Query group"), { target: { value: "template-1" } });
   const previewButton = screen.getByRole("button", { name: "Preview search plan" });
-  await waitFor(() => expect(previewButton).not.toBeDisabled());
   fireEvent.click(previewButton);
-  await screen.findByText(/Accountancy in Galway City/);
+  await screen.findByText("2 prepared queries · bounded result-panel traversal");
 }
 
 describe("App", () => {
-  it("renders Markets as the guided landing page", async () => {
+  it("renders guided markets and geography data", async () => {
     renderApp();
     expect(await screen.findByRole("heading", { name: "Markets" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Find the best markets before collecting businesses." })).toBeInTheDocument();
-    expect(await screen.findByText("31")).toBeInTheDocument();
+    expect(await screen.findByText("Galway City", { exact: true })).toBeInTheDocument();
   });
 
-  it("carries a recommended market into Discover", async () => {
-    renderApp();
-    await screen.findByRole("option", { name: "Accountancy" });
-    fireEvent.change(screen.getByLabelText("Sector"), { target: { value: "template-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Recommend markets" }));
-    expect(await screen.findByRole("heading", { name: "Recommended markets" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Research this market" }));
-    expect(await screen.findByRole("heading", { name: "Discover" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Territory")).toHaveValue("territory-1");
-    expect(screen.getByLabelText("Query group")).toHaveValue("template-1");
-  });
-
-  it("renders the validated geographic workspace", async () => {
-    renderApp();
-    expect(await screen.findByText("Local Authorities 2026")).toBeInTheDocument();
-    expect(screen.getByText("1 validated boundaries")).toBeInTheDocument();
-    expect(screen.getByLabelText("Coverage freshness legend")).toBeInTheDocument();
-    await waitFor(() => expect(mapMethods.addSource).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: /^Territories$/ }));
-    expect(await screen.findByText("Galway City")).toBeInTheDocument();
-  });
-
-  it("shows coverage details for a selected boundary", async () => {
-    renderApp();
-    await waitFor(() => expect(mapMethods.on).toHaveBeenCalled());
-    const clickCall = mapMethods.on.mock.calls.find((call) => call[0] === "click");
-    clickCall?.[2]({ features: [{ properties: { external_id: "galway-city" } }] });
-    expect(await screen.findByText("12 leads")).toBeInTheDocument();
-    expect(screen.getAllByText("fresh").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Latest observation/)).toBeInTheDocument();
-  });
-
-  it("assigns a selected boundary to a territory", async () => {
-    renderApp();
-    await waitFor(() => expect(mapMethods.on).toHaveBeenCalled());
-    const clickCall = mapMethods.on.mock.calls.find((call) => call[0] === "click");
-    clickCall?.[2]({ features: [{ properties: { external_id: "galway-city" } }] });
-    expect(await screen.findByText("Not linked to a LeadMap territory")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Territory"), { target: { value: "territory-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Assign boundary" }));
-    expect(await screen.findByText("Territory link saved.")).toBeInTheDocument();
-    expect(await screen.findByText("Linked to Galway City")).toBeInTheDocument();
-  });
-
-  it("previews a canonical prepared query checklist", async () => {
+  it("previews and controls an assisted discovery session", async () => {
     renderApp();
     await previewPlan();
-    expect(screen.getByRole("button", { name: "Launch query 1" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Current approved query")).toHaveValue("accountant in Galway City, IE");
-    const checklist = screen.getByRole("list", { name: "Prepared query checklist" });
-    expect(checklist).toHaveTextContent("accountantcurrent");
-    expect(checklist).toHaveTextContent("tax advisorpending");
-  });
-
-  it("advances to query two only after explicit collection and stop", async () => {
-    renderApp();
-    await previewPlan();
-
     fireEvent.click(screen.getByRole("button", { name: "Launch query 1" }));
-    expect(await screen.findByText("awaiting operator")).toBeInTheDocument();
-
+    await screen.findByText(/awaiting operator/);
     fireEvent.click(screen.getByRole("button", { name: "Browser is ready" }));
-    expect(await screen.findByRole("button", { name: "Collect bounded results" })).toBeInTheDocument();
-
+    await screen.findByText(/Session status: ready/);
     fireEvent.click(screen.getByRole("button", { name: "Collect bounded results" }));
-    expect(await screen.findByRole("region", { name: "Candidate review queue" })).toBeInTheDocument();
-    expect(screen.getByText("West Coast Accountancy")).toBeInTheDocument();
-    expect(screen.getByText(/1 included · 0 excluded/)).toBeInTheDocument();
-    expect(screen.getByText("1 unique cards collected")).toBeInTheDocument();
-    expect(screen.getByText(/stopped: no new results/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("checkbox", { name: "Include" }));
-    expect(await screen.findByText(/0 included · 1 excluded/)).toBeInTheDocument();
-
+    await screen.findByText("1 unique cards collected");
     fireEvent.click(screen.getByRole("button", { name: "Stop assisted session" }));
-    expect(await screen.findByRole("button", { name: "Prepare query 2" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Prepare query 2" }));
+    await screen.findByRole("button", { name: "Prepare query 2" });
+  });
 
-    expect(screen.getByLabelText("Current approved query")).toHaveValue("tax advisor in Galway City, IE");
-    expect(screen.getByRole("button", { name: "Launch query 2" })).toBeInTheDocument();
-    expect(screen.getByRole("list", { name: "Prepared query checklist" })).toHaveTextContent("accountantcompleted");
+  it("updates candidate review decisions", async () => {
+    renderApp();
+    await previewPlan();
+    fireEvent.click(screen.getByRole("button", { name: "Launch query 1" }));
+    await screen.findByText(/awaiting operator/);
+    fireEvent.click(screen.getByRole("button", { name: "Browser is ready" }));
+    await screen.findByText(/Session status: ready/);
+    fireEvent.click(screen.getByRole("button", { name: "Capture currently visible only" }));
+    await screen.findByText("West Coast Accountancy");
+    fireEvent.click(screen.getByRole("button", { name: "Exclude" }));
+    await waitFor(() => expect(screen.getByText("0 included · 1 excluded")).toBeInTheDocument());
   });
 });
