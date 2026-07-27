@@ -5,7 +5,11 @@ import json
 import sys
 from pathlib import Path
 
-from backend.leadmap.market_indicators import (
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from backend.leadmap.market_indicators import (  # noqa: E402
     MarketIndicatorValidationError,
     install_market_indicator_artifact,
 )
@@ -15,7 +19,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate and install an approved market indicator artifact."
     )
-    parser.add_argument("artifact", type=Path, help="Path to the approved JSON artifact.")
+    parser.add_argument(
+        "artifact",
+        type=Path,
+        help="Path to the approved JSON artifact.",
+    )
     parser.add_argument(
         "--directory",
         type=Path,
