@@ -5,7 +5,6 @@ import json
 import math
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
 
 
 class MarketIndicatorValidationError(ValueError):
