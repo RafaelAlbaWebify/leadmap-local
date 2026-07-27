@@ -251,7 +251,7 @@ try {
 
   const dealCreate = workspace.getByRole("region", { name: "Create deal" });
   await dealCreate.getByLabel("Title", { exact: true }).fill("Website redesign");
-  await dealCreate.getByLabel("Stage", { exact: true }).selectOption("proposal");
+  await dealCreate.getByRole("combobox").selectOption("proposal");
   await dealCreate.getByLabel("Value (€)").fill("3500");
   await dealCreate.getByLabel("Next action", { exact: true }).fill("Send proposal");
   await dealCreate.getByRole("button", { name: "Create deal" }).click();
