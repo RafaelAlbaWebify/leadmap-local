@@ -103,7 +103,9 @@ def build_geography_diagnostics(
     if not isinstance(feature_count, int) or feature_count < 0:
         raise BoundaryValidationError("Geographic artifact feature count is invalid.")
     if map_checksum != checksum or map_feature_count != feature_count:
-        raise BoundaryValidationError("Map artifact identity does not match the canonical artifact.")
+        raise BoundaryValidationError(
+            "Map artifact identity does not match the canonical artifact."
+        )
 
     canonical_bytes = _json_bytes(canonical)
     map_bytes = _json_bytes(mapped)
