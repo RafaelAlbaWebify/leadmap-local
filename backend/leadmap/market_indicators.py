@@ -75,8 +75,11 @@ def validate_market_indicator_artifact(document: object) -> dict[str, object]:
             f"records[{index}].unit",
         )
         value = record.get("value")
-        is_number = isinstance(value, (int, float)) and not isinstance(value, bool)
-        if not is_number or not math.isfinite(float(value)):
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise MarketIndicatorValidationError(
+                f"records[{index}].value must be finite numeric data."
+            )
+        if not math.isfinite(float(value)):
             raise MarketIndicatorValidationError(
                 f"records[{index}].value must be finite numeric data."
             )
