@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { BusinessWorkspace } from "./BusinessWorkspace";
+import { BusinessWorkspace } from "./BusinessWorkspaceLegacy";
 import {
   applyBusinessView,
   BUSINESS_VIEWS_STORAGE_KEY,
