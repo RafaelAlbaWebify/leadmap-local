@@ -82,11 +82,29 @@ jobs:
 
           path = Path("e2e/business-detail-workspace.mjs")
           text = path.read_text()
-          old = 'dealCreate.getByLabel("Stage", { exact: true })'
-          new = 'dealCreate.locator("select").first()'
-          if old not in text:
-              raise SystemExit("Expected business-detail Stage locator was not found.")
-          path.write_text(text.replace(old, new, 1))
+          replacements = [
+              (
+                  'dealCreate.getByLabel("Stage", { exact: true })',
+                  'dealCreate.locator("select").first()',
+              ),
+              (
+                  'proposal.getByText("Website redesign").waitFor()',
+                  'proposal.getByText("Website redesign", { exact: true }).waitFor()',
+              ),
+              (
+                  'won.getByText("Website redesign").waitFor()',
+                  'won.getByText("Website redesign", { exact: true }).waitFor()',
+              ),
+              (
+                  'proposal.getByText("Website redesign").waitFor({ state: "detached" })',
+                  'proposal.getByText("Website redesign", { exact: true }).waitFor({ state: "detached" })',
+              ),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f"Expected business-detail locator was not found: {old}")
+              text = text.replace(old, new, 1)
+          path.write_text(text)
           PY
 
           clear_vite_ports() {
