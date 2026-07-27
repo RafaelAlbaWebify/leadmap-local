@@ -1,0 +1,97 @@
+name: Saved Business Views
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saved-business-views-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Normalize lockfile registry metadata
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'package-lock.json';
+          const lock = JSON.parse(fs.readFileSync(path, 'utf8'));
+          for (const entry of Object.values(lock.packages ?? {})) {
+            if (entry && typeof entry === 'object' && typeof entry.resolved === 'string') {
+              if (!entry.resolved.startsWith('https://registry.npmjs.org/')) delete entry.resolved;
+            }
+          }
+          fs.writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
+          NODE
+      - name: Install
+        run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Saved business views acceptance
+        run: timeout 120s node e2e/saved-business-views.mjs
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saved-business-views-linux
+          path: frontend/artifacts/screenshots/saved-business-views.png
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Normalize lockfile registry metadata
+        shell: pwsh
+        run: |
+          @'
+          const fs = require('node:fs');
+          const path = 'package-lock.json';
+          const lock = JSON.parse(fs.readFileSync(path, 'utf8'));
+          for (const entry of Object.values(lock.packages ?? {})) {
+            if (entry && typeof entry === 'object' && typeof entry.resolved === 'string') {
+              if (!entry.resolved.startsWith('https://registry.npmjs.org/')) delete entry.resolved;
+            }
+          }
+          fs.writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
+          '@ | node
+      - name: Install
+        run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
+          npx playwright install chromium
+      - name: Saved business views acceptance
+        run: node e2e/saved-business-views.mjs
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saved-business-views-windows
+          path: frontend/artifacts/screenshots/saved-business-views.png
+          if-no-files-found: error
