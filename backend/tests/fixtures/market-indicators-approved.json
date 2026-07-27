@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "source": {
+    "dataset_title": "Approved local business indicator fixture",
+    "publisher": "Official Publisher",
+    "source_url": "https://example.invalid/dataset",
+    "licence": "CC BY 4.0",
+    "published_at": "2026-01-15",
+    "retrieved_at": "2026-07-27T12:00:00Z"
+  },
+  "records": [
+    {
+      "territory_key": "galway-city",
+      "sector_key": "all",
+      "indicator_key": "active-enterprises",
+      "unit": "businesses",
+      "value": 1250,
+      "notes": "Fixture only."
+    },
+    {
+      "territory_key": "galway-city",
+      "sector_key": "legal-services",
+      "indicator_key": "sector-enterprises",
+      "unit": "businesses",
+      "value": 87
+    }
+  ]
+}
