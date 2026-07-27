@@ -87,7 +87,8 @@ def test_reinstall_is_idempotent(tmp_path: Path) -> None:
 def test_territory_values_are_explicit_and_deterministic() -> None:
     document = validate_market_indicator_artifact(artifact())
     values = territory_indicator_values(document, "galway-city", "legal-services")
-    assert [item["indicator_key"] for item in values] == ["active-enterprises", "sector-enterprises"]
+    keys = [item["indicator_key"] for item in values]
+    assert keys == ["active-enterprises", "sector-enterprises"]
     assert territory_indicator_values(document, "missing", None) == []
 
 
