@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveInsights } from "./InsightsWorkspace";
 import type { Deal } from "./dealApi";
+import { deriveInsights } from "./insightsModel";
 import type { Task } from "./taskApi";
 
 const dashboard = {
