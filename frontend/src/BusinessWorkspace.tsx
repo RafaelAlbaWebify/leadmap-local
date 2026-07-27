@@ -8,6 +8,7 @@ import {
   updateBusinessQualification
 } from "./api";
 import { BusinessDealCreate } from "./DealsWorkspace";
+import { TaskCreate } from "./TasksWorkspace";
 import type { BusinessDetail, BusinessNote, Lead, QualificationStatus } from "./types";
 import "./businessWorkspace.css";
 
@@ -185,6 +186,11 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
           </article>
         ))}
       </div>
+
+      <TaskCreate
+        businessId={detail.id}
+        label={`Create task for ${detail.canonical_name}`}
+      />
 
       <BusinessDealCreate
         businessId={detail.id}

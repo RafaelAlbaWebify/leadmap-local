@@ -239,7 +239,7 @@ try {
 
   const workspace = page.getByRole("region", { name: "Business detail workspace" });
   await workspace.waitFor();
-  await workspace.getByRole("heading", { name: "Kildare Accountancy" }).waitFor();
+  await workspace.getByRole("heading", { name: "Kildare Accountancy", exact: true }).waitFor();
   await workspace.getByText("+353 45 000 000").waitFor();
   await workspace.getByText("53.16, -6.91").waitFor();
   await workspace.getByText("Reviewed public evidence before qualification.").waitFor();
@@ -249,12 +249,13 @@ try {
   await workspace.getByRole("button", { name: "Save qualification" }).click();
   await workspace.getByText("Qualification saved as qualified.").waitFor();
 
-  await workspace.getByLabel("Title").fill("Website redesign");
-  await workspace.getByLabel("Stage").selectOption("proposal");
-  await workspace.getByLabel("Value (€)").fill("3500");
-  await workspace.getByLabel("Next action").fill("Send proposal");
-  await workspace.getByRole("button", { name: "Create deal" }).click();
-  await workspace.getByText("Deal created.").waitFor();
+  const dealCreate = workspace.getByRole("region", { name: "Create deal" });
+  await dealCreate.getByLabel("Title", { exact: true }).fill("Website redesign");
+  await dealCreate.getByRole("combobox").selectOption("proposal");
+  await dealCreate.getByLabel("Value (€)").fill("3500");
+  await dealCreate.getByLabel("Next action", { exact: true }).fill("Send proposal");
+  await dealCreate.getByRole("button", { name: "Create deal" }).click();
+  await dealCreate.getByText("Deal created.").waitFor();
 
   await workspace.getByLabel("Add a note").fill("Call next Tuesday after qualification review.");
   await workspace.getByRole("button", { name: "Add note" }).click();
@@ -266,7 +267,7 @@ try {
   const pipeline = page.getByRole("region", { name: "Deals pipeline" });
   await pipeline.waitFor();
   const proposal = page.getByRole("region", { name: "Proposal deals" });
-  await proposal.getByText("Website redesign").waitFor();
+  await proposal.getByText("Website redesign", { exact: true }).waitFor();
   await proposal.getByText("Kildare Accountancy").waitFor();
   await proposal.getByText("3500,00 €").waitFor();
   await proposal.getByText("Send proposal").waitFor();
@@ -278,11 +279,11 @@ try {
   await editor.getByRole("button", { name: "Save deal" }).click();
 
   const won = page.getByRole("region", { name: "Won deals" });
-  await won.getByText("Website redesign").waitFor();
+  await won.getByText("Website redesign", { exact: true }).waitFor();
   await won.getByText("Kildare Accountancy").waitFor();
   await won.getByText("3500,00 €").waitFor();
   await won.getByText("Schedule kickoff").waitFor();
-  await proposal.getByText("Website redesign").waitFor({ state: "detached" });
+  await proposal.getByText("Website redesign", { exact: true }).waitFor({ state: "detached" });
   await page.screenshot({ path: "artifacts/screenshots/deal-stage-update-workspace.png", fullPage: true });
 
   if (consoleErrors.length > 0) {

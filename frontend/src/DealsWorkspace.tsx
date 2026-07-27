@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { createDeal, fetchDeals, updateDeal, type Deal, type DealStage } from "./dealApi";
+import { TaskCreate } from "./TasksWorkspace";
 import "./dealsWorkspace.css";
 
 const stageOptions: Array<{ value: DealStage; label: string }> = [
@@ -13,7 +14,9 @@ const stageOptions: Array<{ value: DealStage; label: string }> = [
 ];
 
 function formatMoney(valueEurCents: number | null): string {
-  if (valueEurCents === null) return "Value not set";
+  if (valueEurCents === null) {
+    return "Value not set";
+  }
   return new Intl.NumberFormat("es-ES", {
     style: "currency",
     currency: "EUR",
@@ -55,29 +58,73 @@ export function BusinessDealCreate({
     && Number.isFinite(numericValue)
     && numericValue >= 0;
 
-  if (qualificationStatus !== "qualified") {
-    return (
-      <section className="deal-create locked" aria-label="Create deal">
-        <h3>Create deal</h3>
-        <p>Qualify this business before creating a commercial opportunity.</p>
-      </section>
-    );
-  }
-
-  return (
+  return qualificationStatus !== "qualified" ? (
+    <section className="deal-create locked" aria-label="Create deal">
+      <h3>Create deal</h3>
+      <p>Qualify this business before creating a commercial opportunity.</p>
+    </section>
+  ) : (
     <section className="deal-create" aria-label="Create deal">
       <div className="panel-heading">
-        <div><h3>Create deal</h3><p>Turn this qualified business into an explicit opportunity.</p></div>
+        <div>
+          <h3>Create deal</h3>
+          <p>Turn this qualified business into an explicit opportunity.</p>
+        </div>
       </div>
       <div className="deal-form-grid">
-        <label>Title<input value={title} maxLength={300} onChange={(event) => setTitle(event.target.value)} /></label>
-        <label>Stage<select value={stage} onChange={(event) => setStage(event.target.value as DealStage)}>{stageOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-        <label>Value (€)<input type="number" min="0" step="0.01" value={valueEur} onChange={(event) => setValueEur(event.target.value)} /></label>
-        <label>Next action<input value={nextAction} maxLength={1000} onChange={(event) => setNextAction(event.target.value)} /></label>
+        <label>
+          Title
+          <input
+            value={title}
+            maxLength={300}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
+        <label>
+          Stage
+          <select
+            value={stage}
+            onChange={(event) => setStage(event.target.value as DealStage)}
+          >
+            {stageOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Value (€)
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={valueEur}
+            onChange={(event) => setValueEur(event.target.value)}
+          />
+        </label>
+        <label>
+          Next action
+          <input
+            value={nextAction}
+            maxLength={1000}
+            onChange={(event) => setNextAction(event.target.value)}
+          />
+        </label>
       </div>
-      <button className="primary-action compact" disabled={!canSubmit || mutation.isPending} onClick={() => mutation.mutate()}>{mutation.isPending ? "Creating…" : "Create deal"}</button>
-      {mutation.isSuccess && <div className="notice success" role="status">Deal created.</div>}
-      {mutation.isError && <div className="notice error" role="alert">Deal could not be created. Your entered values are retained.</div>}
+      <button
+        className="primary-action compact"
+        disabled={!canSubmit || mutation.isPending}
+        onClick={() => mutation.mutate()}
+      >
+        {mutation.isPending ? "Creating…" : "Create deal"}
+      </button>
+      {mutation.isSuccess && (
+        <div className="notice success" role="status">Deal created.</div>
+      )}
+      {mutation.isError && (
+        <div className="notice error" role="alert">
+          Deal could not be created. Your entered values are retained.
+        </div>
+      )}
     </section>
   );
 }
@@ -115,19 +162,57 @@ function DealCard({ deal }: { deal: Deal }) {
       <span>{formatMoney(deal.value_eur_cents)}</span>
       {!editing && <small>{deal.next_action ?? "No next action"}</small>}
       {!editing && (
-        <button className="secondary-action compact" onClick={() => setEditing(true)}>Edit deal</button>
+        <button className="secondary-action compact" onClick={() => setEditing(true)}>
+          Edit deal
+        </button>
       )}
       {editing && (
         <div className="deal-edit" aria-label={`Edit ${deal.title}`}>
-          <label>Stage<select value={stage} disabled={mutation.isPending} onChange={(event) => setStage(event.target.value as DealStage)}>{stageOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label>Next action<input value={nextAction} maxLength={1000} disabled={mutation.isPending} onChange={(event) => setNextAction(event.target.value)} /></label>
+          <label>
+            Stage
+            <select
+              value={stage}
+              disabled={mutation.isPending}
+              onChange={(event) => setStage(event.target.value as DealStage)}
+            >
+              {stageOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Next action
+            <input
+              value={nextAction}
+              maxLength={1000}
+              disabled={mutation.isPending}
+              onChange={(event) => setNextAction(event.target.value)}
+            />
+          </label>
           <div className="deal-edit-actions">
-            <button className="primary-action compact" disabled={mutation.isPending} onClick={() => mutation.mutate()}>{mutation.isPending ? "Saving…" : "Save deal"}</button>
-            <button className="secondary-action compact" disabled={mutation.isPending} onClick={cancelEditing}>Cancel</button>
+            <button
+              className="primary-action compact"
+              disabled={mutation.isPending}
+              onClick={() => mutation.mutate()}
+            >
+              {mutation.isPending ? "Saving…" : "Save deal"}
+            </button>
+            <button
+              className="secondary-action compact"
+              disabled={mutation.isPending}
+              onClick={cancelEditing}
+            >
+              Cancel
+            </button>
           </div>
-          {mutation.isError && <div className="notice error" role="alert">Deal could not be updated. Your entered values are retained.</div>}
+          {mutation.isError && (
+            <div className="notice error" role="alert">
+              Deal could not be updated. Your entered values are retained.
+            </div>
+          )}
         </div>
       )}
+      <TaskCreate dealId={deal.id} label={`Create task for ${deal.title}`} />
     </article>
   );
 }
@@ -135,8 +220,12 @@ function DealCard({ deal }: { deal: Deal }) {
 export function DealsWorkspace() {
   const deals = useQuery({ queryKey: ["deals"], queryFn: fetchDeals });
 
-  if (deals.isPending) return <div className="notice">Loading deals…</div>;
-  if (deals.isError) return <div className="notice error">Deals could not be loaded.</div>;
+  if (deals.isPending) {
+    return <div className="notice">Loading deals…</div>;
+  }
+  if (deals.isError) {
+    return <div className="notice error">Deals could not be loaded.</div>;
+  }
 
   return (
     <section className="deal-pipeline" aria-label="Deals pipeline">
