@@ -118,7 +118,10 @@ def build_geography_diagnostics(
         canonical_coordinate_count=canonical_coordinates,
         map_coordinate_count=map_coordinates,
         byte_reduction_percent=_reduction_percent(canonical_bytes, map_bytes),
-        coordinate_reduction_percent=_reduction_percent(canonical_coordinates, map_coordinates),
+        coordinate_reduction_percent=_reduction_percent(
+            canonical_coordinates,
+            map_coordinates,
+        ),
         simplification_tolerance=MAP_SIMPLIFICATION_TOLERANCE,
         derivation_duration_ms=round(max(0.0, finished - started) * 1000, 3),
     )
