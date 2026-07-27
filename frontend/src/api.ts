@@ -75,8 +75,17 @@ export function fetchGeographyArtifacts(): Promise<GeographyArtifactSummary[]> {
   return requestJson("/api/v1/geography/artifacts");
 }
 
-export function fetchGeographyArtifact(checksumSha256: string): Promise<GeographyArtifact> {
-  return requestJson(`/api/v1/geography/artifacts/${checksumSha256}/map`);
+export async function fetchGeographyArtifact(checksumSha256: string): Promise<GeographyArtifact> {
+  const mapUrl = `/api/v1/geography/artifacts/${checksumSha256}/map`;
+  const response = await fetch(mapUrl);
+  if (response.ok) {
+    const artifact = await response.json() as GeographyArtifact | undefined;
+    if (artifact) return artifact;
+  } else if (response.status !== 404) {
+    const detail = await response.text();
+    throw new Error(`${response.status}: ${detail || response.statusText}`);
+  }
+  return requestJson(`/api/v1/geography/artifacts/${checksumSha256}`);
 }
 
 export function fetchTerritoryBoundaryLinks(): Promise<TerritoryBoundaryLink[]> {
