@@ -1,0 +1,40 @@
+name: Geography Diagnostics
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geography-diagnostics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnostics:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      - name: Generate diagnostics
+        run: >-
+          python scripts/geography-diagnostics.py
+          backend/tests/fixtures/geography-diagnostics-artifact.json
+          --output artifacts/geography-diagnostics.json
+      - name: Verify stable diagnostic fields
+        run: python -c "import json; from pathlib import Path; data=json.loads(Path('artifacts/geography-diagnostics.json').read_text()); assert data['feature_count'] == 2; assert data['canonical_coordinate_count'] == 19; assert data['map_coordinate_count'] < 19; assert data['map_json_bytes'] < data['canonical_json_bytes']; assert data['checksum_sha256'] == 'a' * 64"
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: geography-diagnostics-${{ runner.os }}
+          path: artifacts/geography-diagnostics.json
+          if-no-files-found: error
