@@ -79,10 +79,7 @@ def get_market_indicator_catalog(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
-    return [
-        MarketIndicatorArtifactSummaryResponse.model_validate(item)
-        for item in artifacts
-    ]
+    return [MarketIndicatorArtifactSummaryResponse.model_validate(item) for item in artifacts]
 
 
 @router.get(
