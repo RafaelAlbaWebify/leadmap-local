@@ -8,6 +8,7 @@ from backend.leadmap.config import get_settings
 from backend.leadmap.geography import (
     BoundaryValidationError,
     TerritoryBoundaryLink,
+    derive_map_artifact,
     list_boundary_artifacts,
     list_territory_boundary_links,
     load_boundary_artifact,
@@ -36,6 +37,21 @@ GeographicArtifactDirectoryDependency = Annotated[Path, Depends(get_geographic_a
 SessionDependency = Annotated[Session, Depends(get_session)]
 
 
+def _load_artifact(checksum_sha256: str, directory: Path) -> dict[str, object]:
+    try:
+        return load_boundary_artifact(directory=directory, checksum_sha256=checksum_sha256)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Geographic artifact not found.",
+        ) from exc
+    except BoundaryValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+
 @router.get("/artifacts", response_model=list[GeographyArtifactSummaryResponse])
 def get_geographic_artifact_catalog(
     directory: GeographicArtifactDirectoryDependency,
@@ -58,16 +74,19 @@ def get_geographic_artifact(
     checksum_sha256: str,
     directory: GeographicArtifactDirectoryDependency,
 ) -> GeographyArtifactResponse:
+    return GeographyArtifactResponse.model_validate(_load_artifact(checksum_sha256, directory))
+
+
+@router.get(
+    "/artifacts/{checksum_sha256}/map",
+    response_model=GeographyArtifactResponse,
+)
+def get_geographic_map_artifact(
+    checksum_sha256: str,
+    directory: GeographicArtifactDirectoryDependency,
+) -> GeographyArtifactResponse:
     try:
-        document = load_boundary_artifact(
-            directory=directory,
-            checksum_sha256=checksum_sha256,
-        )
-    except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Geographic artifact not found.",
-        ) from exc
+        document = derive_map_artifact(_load_artifact(checksum_sha256, directory))
     except BoundaryValidationError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -143,21 +162,7 @@ def put_territory_boundary_link(
     if LeadRepository(session).get_territory(territory_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Territory not found.")
 
-    try:
-        document = load_boundary_artifact(
-            directory=directory,
-            checksum_sha256=payload.checksum_sha256,
-        )
-    except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Geographic artifact not found.",
-        ) from exc
-    except BoundaryValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        ) from exc
+    document = _load_artifact(payload.checksum_sha256, directory)
 
     boundaries = document.get("boundaries")
     boundary = (

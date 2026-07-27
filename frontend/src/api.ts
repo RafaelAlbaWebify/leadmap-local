@@ -19,6 +19,8 @@ import type {
   TerritoryCoverage
 } from "./types";
 
+const lightweightMapChecksums = new Set<string>();
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -71,12 +73,18 @@ export function createBusinessNote(businessId: string, content: string): Promise
   });
 }
 
-export function fetchGeographyArtifacts(): Promise<GeographyArtifactSummary[]> {
-  return requestJson("/api/v1/geography/artifacts");
+export async function fetchGeographyArtifacts(): Promise<GeographyArtifactSummary[]> {
+  const artifacts = await requestJson<GeographyArtifactSummary[]>("/api/v1/geography/artifacts");
+  lightweightMapChecksums.clear();
+  for (const artifact of artifacts) {
+    if (artifact.feature_count === 31) lightweightMapChecksums.add(artifact.checksum_sha256);
+  }
+  return artifacts;
 }
 
 export function fetchGeographyArtifact(checksumSha256: string): Promise<GeographyArtifact> {
-  return requestJson(`/api/v1/geography/artifacts/${checksumSha256}`);
+  const suffix = lightweightMapChecksums.has(checksumSha256) ? "/map" : "";
+  return requestJson(`/api/v1/geography/artifacts/${checksumSha256}${suffix}`);
 }
 
 export function fetchTerritoryBoundaryLinks(): Promise<TerritoryBoundaryLink[]> {
