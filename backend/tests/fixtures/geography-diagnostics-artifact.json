@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "idempotency_key": "diagnostics-fixture",
+  "checksum_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source": {
+    "dataset_title": "Diagnostics fixture",
+    "publisher": "LeadMap test suite",
+    "licence": "Test data",
+    "edition_year": 2026,
+    "source_url": "https://example.invalid/diagnostics",
+    "retrieved_at": "2026-07-27T00:00:00Z"
+  },
+  "feature_count": 2,
+  "boundaries": [
+    {
+      "external_id": "fixture-polygon",
+      "name": "Fixture Polygon",
+      "geometry_type": "Polygon",
+      "coordinates": [[
+        [-10.0, 53.0],
+        [-9.9998, 53.0],
+        [-9.9996, 53.0],
+        [-9.9994, 53.0],
+        [-9.9992, 53.0],
+        [-9.9990, 53.0],
+        [-9.9988, 53.0],
+        [-9.9986, 53.0],
+        [-9.9984, 53.0],
+        [-9.9982, 53.0],
+        [-9.9980, 53.0],
+        [-9.9980, 53.01],
+        [-10.0, 53.01],
+        [-10.0, 53.0]
+      ]],
+      "bounding_box": {"west": -10.0, "south": 53.0, "east": -9.9980, "north": 53.01}
+    },
+    {
+      "external_id": "fixture-multipolygon",
+      "name": "Fixture MultiPolygon",
+      "geometry_type": "MultiPolygon",
+      "coordinates": [[[[-9.0, 52.0], [-8.9, 52.0], [-8.9, 52.1], [-9.0, 52.1], [-9.0, 52.0]]]],
+      "bounding_box": {"west": -9.0, "south": 52.0, "east": -8.9, "north": 52.1}
+    }
+  ]
+}
