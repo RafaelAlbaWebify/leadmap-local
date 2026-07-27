@@ -77,42 +77,10 @@ jobs:
         run: |
           mkdir -p artifacts/screenshots
 
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("e2e/business-detail-workspace.mjs")
-          text = path.read_text()
-          replacements = [
-              (
-                  'dealCreate.getByLabel("Stage", { exact: true })',
-                  'dealCreate.locator("select").first()',
-              ),
-              (
-                  'proposal.getByText("Website redesign").waitFor()',
-                  'proposal.getByText("Website redesign", { exact: true }).waitFor()',
-              ),
-              (
-                  'won.getByText("Website redesign").waitFor()',
-                  'won.getByText("Website redesign", { exact: true }).waitFor()',
-              ),
-              (
-                  'proposal.getByText("Website redesign").waitFor({ state: "detached" })',
-                  'proposal.getByText("Website redesign", { exact: true }).waitFor({ state: "detached" })',
-              ),
-          ]
-          for old, new in replacements:
-              if old not in text:
-                  raise SystemExit(f"Expected business-detail locator was not found: {old}")
-              text = text.replace(old, new, 1)
-          path.write_text(text)
-          PY
-
           clear_vite_ports() {
             for port in 5173 5174 5175 5176; do
               fuser -k "${port}/tcp" 2>/dev/null || true
             done
-            pkill -f 'vite --host 127.0.0.1' || true
-            pkill -f 'npm run dev' || true
           }
 
           run_review() {
