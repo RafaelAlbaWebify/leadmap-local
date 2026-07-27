@@ -2,7 +2,11 @@ from copy import deepcopy
 
 import pytest
 
-from backend.leadmap.geography import BoundaryValidationError, derive_map_artifact, simplify_ring
+from backend.leadmap.geography import (
+    BoundaryValidationError,
+    derive_map_artifact,
+    simplify_ring,
+)
 
 
 def _document() -> dict[str, object]:
@@ -27,20 +31,34 @@ def _document() -> dict[str, object]:
                 "name": "Authority One",
                 "geometry_type": "Polygon",
                 "coordinates": [ring],
-                "bounding_box": {"west": -10.0, "south": 53.0, "east": -9.9962, "north": 53.01},
+                "bounding_box": {
+                    "west": -10.0,
+                    "south": 53.0,
+                    "east": -9.9962,
+                    "north": 53.01,
+                },
             },
             {
                 "external_id": "authority-2",
                 "name": "Authority Two",
                 "geometry_type": "MultiPolygon",
-                "coordinates": [[[
-                    [-9.0, 52.0],
-                    [-8.9, 52.0],
-                    [-8.9, 52.1],
-                    [-9.0, 52.1],
-                    [-9.0, 52.0],
-                ]]],
-                "bounding_box": {"west": -9.0, "south": 52.0, "east": -8.9, "north": 52.1},
+                "coordinates": [
+                    [
+                        [
+                            [-9.0, 52.0],
+                            [-8.9, 52.0],
+                            [-8.9, 52.1],
+                            [-9.0, 52.1],
+                            [-9.0, 52.0],
+                        ]
+                    ]
+                ],
+                "bounding_box": {
+                    "west": -9.0,
+                    "south": 52.0,
+                    "east": -8.9,
+                    "north": 52.1,
+                },
             },
         ],
     }
@@ -59,7 +77,10 @@ def test_map_artifact_reduces_points_and_preserves_identity() -> None:
 
     boundaries = mapped["boundaries"]
     assert isinstance(boundaries, list)
-    assert [item["external_id"] for item in boundaries] == ["authority-1", "authority-2"]
+    assert [item["external_id"] for item in boundaries] == [
+        "authority-1",
+        "authority-2",
+    ]
     simplified_ring = boundaries[0]["coordinates"][0]
     original_ring = original["boundaries"][0]["coordinates"][0]
     assert len(simplified_ring) < len(original_ring)
