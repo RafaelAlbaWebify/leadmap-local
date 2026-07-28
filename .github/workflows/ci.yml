@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   backend:
+    name: Backend fast checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -34,8 +35,9 @@ jobs:
         run: pytest
 
   frontend:
+    name: Frontend fast checks
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -69,113 +71,3 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
-      - name: Install Playwright
-        run: |
-          npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
-          npx playwright install --with-deps chromium
-      - name: Playwright screenshot review
-        run: |
-          mkdir -p artifacts/screenshots
-
-          clear_vite_ports() {
-            for port in 5173 5174 5175 5176; do
-              fuser -k "${port}/tcp" 2>/dev/null || true
-            done
-          }
-
-          run_review() {
-            local name="$1"
-            local final_screenshot="$2"
-            local log="artifacts/screenshots/${name}.log"
-            local status=0
-
-            clear_vite_ports
-            echo "[playwright] ${name}"
-            set +e
-            timeout 120s node "e2e/${name}.mjs" >"$log" 2>&1
-            status=$?
-            set -e
-            cat "$log"
-            clear_vite_ports
-
-            if [ "$status" -eq 0 ]; then
-              return 0
-            fi
-
-            if [ "$status" -eq 124 ] \
-              && [ -s "artifacts/screenshots/${final_screenshot}" ] \
-              && ! grep -Eiq '(^|[^[:alpha:]])(error|exception|unhandled|assertion)(:|[^[:alpha:]])' "$log"; then
-              echo "[playwright] ${name} completed assertions and screenshots before teardown timeout."
-              return 0
-            fi
-
-            echo "[playwright] ${name} failed with status ${status}."
-            return "$status"
-          }
-
-          run_review geography-screenshot-review territories-selected-boundary.png
-          run_review aggregate-query-review discover-aggregate-persisted.png
-          run_review business-detail-workspace deal-stage-update-workspace.png
-          run_review task-workspace persisted-follow-up-tasks.png
-          run_review deal-list-workspace deal-list-workspace.png
-          run_review operational-insights operational-insights.png
-      - name: Upload screenshot review
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: geography-screenshot-review
-          path: frontend/artifacts/screenshots
-          if-no-files-found: error
-
-  frontend-windows:
-    runs-on: windows-latest
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Normalize lockfile registry metadata
-        shell: pwsh
-        run: |
-          @'
-          const fs = require('node:fs');
-          const path = 'package-lock.json';
-          const lock = JSON.parse(fs.readFileSync(path, 'utf8'));
-          for (const entry of Object.values(lock.packages ?? {})) {
-            if (entry && typeof entry === 'object' && typeof entry.resolved === 'string') {
-              if (!entry.resolved.startsWith('https://registry.npmjs.org/')) {
-                delete entry.resolved;
-              }
-            }
-          }
-          fs.writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
-          '@ | node
-      - name: Install
-        run: npm ci --no-audit --no-fund --registry=https://registry.npmjs.org
-      - name: Build
-        run: npm run build
-      - name: Install Playwright
-        run: |
-          npm install --no-save --package-lock=false --ignore-scripts playwright@1.55.0
-          npx playwright install chromium
-      - name: Windows Playwright acceptance
-        run: |
-          node e2e/geography-screenshot-review.mjs
-          node e2e/aggregate-query-review.mjs
-          node e2e/business-detail-workspace.mjs
-          node e2e/task-workspace.mjs
-          node e2e/deal-list-workspace.mjs
-          node e2e/operational-insights.mjs
-      - name: Upload Windows screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: geography-screenshot-review-windows
-          path: frontend/artifacts/screenshots
-          if-no-files-found: error
