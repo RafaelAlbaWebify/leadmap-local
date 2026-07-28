@@ -2,6 +2,12 @@ name: Saved Business Views
 
 on:
   pull_request:
+    paths:
+      - "frontend/src/**/*BusinessView*"
+      - "frontend/src/**/*business-view*"
+      - "frontend/src/**/*saved-view*"
+      - "frontend/e2e/saved-business-views.mjs"
+      - ".github/workflows/saved-business-views.yml"
 
 permissions:
   contents: read
