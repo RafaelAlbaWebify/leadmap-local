@@ -2,6 +2,16 @@ name: Market Indicators
 
 on:
   pull_request:
+    paths:
+      - "backend/leadmap/market_indicators.py"
+      - "backend/leadmap/api/market_indicator_routes.py"
+      - "backend/leadmap/config.py"
+      - "backend/leadmap/main.py"
+      - "backend/tests/**/*market_indicator*"
+      - "backend/tests/fixtures/market-indicators-*.json"
+      - "scripts/install-market-indicators.py"
+      - "docs/market-indicator-*.md"
+      - ".github/workflows/market-indicators.yml"
 
 permissions:
   contents: read
