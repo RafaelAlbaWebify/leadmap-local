@@ -2,6 +2,14 @@ name: Lightweight Geography Map
 
 on:
   pull_request:
+    paths:
+      - "backend/leadmap/geography/**"
+      - "backend/leadmap/api/geography_routes.py"
+      - "backend/tests/**/*geograph*"
+      - "frontend/src/**/*Geograph*"
+      - "frontend/src/**/*geograph*"
+      - "frontend/e2e/lightweight-geography-map.mjs"
+      - ".github/workflows/lightweight-geography-map.yml"
 
 permissions:
   contents: read

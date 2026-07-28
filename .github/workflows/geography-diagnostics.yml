@@ -2,6 +2,13 @@ name: Geography Diagnostics
 
 on:
   pull_request:
+    paths:
+      - "backend/leadmap/geography/**"
+      - "backend/tests/**/*geograph*"
+      - "backend/tests/fixtures/geography-diagnostics-artifact.json"
+      - "scripts/geography-diagnostics.py"
+      - "docs/geography-diagnostics.md"
+      - ".github/workflows/geography-diagnostics.yml"
 
 permissions:
   contents: read
