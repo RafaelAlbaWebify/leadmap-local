@@ -53,7 +53,7 @@ jobs:
         run: timeout 120s node e2e/saved-business-views.mjs
       - name: Upload screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: saved-business-views-linux
           path: frontend/artifacts/screenshots/saved-business-views.png
@@ -96,7 +96,7 @@ jobs:
         run: node e2e/saved-business-views.mjs
       - name: Upload screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: saved-business-views-windows
           path: frontend/artifacts/screenshots/saved-business-views.png
