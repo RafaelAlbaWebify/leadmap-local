@@ -40,7 +40,7 @@ jobs:
       - name: Verify stable diagnostic fields
         run: python -c "import json; from pathlib import Path; data=json.loads(Path('artifacts/geography-diagnostics.json').read_text()); assert data['feature_count'] == 2; assert data['canonical_coordinate_count'] == 19; assert data['map_coordinate_count'] < 19; assert data['map_json_bytes'] < data['canonical_json_bytes']; assert data['checksum_sha256'] == 'a' * 64"
       - name: Upload diagnostics
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: geography-diagnostics-${{ runner.os }}
           path: artifacts/geography-diagnostics.json

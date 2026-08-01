@@ -101,7 +101,7 @@ jobs:
           run_review operational-insights operational-insights.png
       - name: Upload Linux screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: final-validation-linux
           path: frontend/artifacts/screenshots
@@ -156,7 +156,7 @@ jobs:
           node e2e/operational-insights.mjs
       - name: Upload Windows screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: final-validation-windows
           path: frontend/artifacts/screenshots

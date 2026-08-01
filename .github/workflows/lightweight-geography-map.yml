@@ -55,7 +55,7 @@ jobs:
         run: timeout 120s node e2e/lightweight-geography-map.mjs
       - name: Upload screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lightweight-geography-map-linux
           path: frontend/artifacts/screenshots/lightweight-geography-map.png
@@ -98,7 +98,7 @@ jobs:
         run: node e2e/lightweight-geography-map.mjs
       - name: Upload screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lightweight-geography-map-windows
           path: frontend/artifacts/screenshots/lightweight-geography-map.png
