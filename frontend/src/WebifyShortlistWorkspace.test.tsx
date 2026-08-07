@@ -56,15 +56,14 @@ describe("WebifyShortlistWorkspace", () => {
     expect(screen.getByRole("button", { name: "Export JSON for Veridra" })).toBeDisabled();
   });
 
-  it("enables handoff export after selecting an eligible prospect", async () => {
-    const user = userEvent.setup();
+  it("enables handoff export after selecting an eligible prospect", () => {
     const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:handoff");
     const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     render(<WebifyShortlistWorkspace leads={leads} />);
 
-    await user.click(screen.getByLabelText("Select Alpha Dental"));
-    await user.click(screen.getByRole("button", { name: "Export JSON for Veridra" }));
+    fireEvent.click(screen.getByLabelText("Select Alpha Dental"));
+    fireEvent.click(screen.getByRole("button", { name: "Export JSON for Veridra" }));
 
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();
