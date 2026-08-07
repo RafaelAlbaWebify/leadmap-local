@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { BusinessWorkspace, qualificationOptions } from "./BusinessWorkspaceLegacy";
+import { BusinessWorkspace } from "./BusinessWorkspaceLegacy";
 import {
   applyBusinessView,
   BUSINESS_VIEWS_STORAGE_KEY,
@@ -12,6 +12,7 @@ import {
   type SavedBusinessView
 } from "./businessViewsModel";
 import type { Lead } from "./types";
+import { qualificationOptions } from "./qualificationOptions";
 import "./businessViewsWorkspace.css";
 
 function loadViews(): SavedBusinessView[] {
