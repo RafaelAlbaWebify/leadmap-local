@@ -25,9 +25,54 @@ If not, backlog it.
 11. First payment and delivery are recorded.
 12. Repeatable weekly acquisition metrics are reviewed.
 
+## Webify Qualification v0.1
+
+The purpose of LEADS qualification is not to identify websites with the most problems. It is to identify businesses most likely to buy and benefit from the EUR 299 Webify Website Fix.
+
+Use two consecutive filters rather than one complicated score:
+
+1. Stage A: LEADS commercial qualification decides whether the company itself is worth investigating.
+2. Stage B: Veridra website assessment investigates selected websites/domains and produces evidence-based website findings.
+
+This prevents Veridra from wasting resources auditing every discovered business.
+
+### Stage A: LEADS commercial qualification
+
+LEADS should first determine whether the company itself is worth investigating.
+
+| Criterion | 0 | 1 | 2 |
+| --- | --- | --- | --- |
+| Active real business | doubtful/inactive | probably active | clearly active |
+| Website commercial importance | incidental | useful | important for leads/bookings/credibility |
+| Business economic value | very low-value transactions | moderate | one customer likely worth hundreds+ |
+| Business size/fit | unsuitable | borderline | owner-managed SMB, roughly 2-30 staff |
+| Decision-maker reachability | none | generic contact only | owner/manager identifiable |
+| Website/platform manageability | complex/high-risk | uncertain | conventional manageable SMB site |
+| Existing agency/internal team | clearly present | unclear | apparently none |
+
+Maximum score: 14.
+
+Initial rule:
+
+- 11-14: send to Veridra.
+- 8-10: hold / secondary.
+- 0-7: reject.
+
+Automatic rejection overrides the score when any of the following is true:
+
+- inactive or closed business;
+- large enterprise or public organisation;
+- complex ecommerce or custom application;
+- obviously sophisticated internal marketing/web operation;
+- website essentially irrelevant to obtaining business;
+- no legitimate contact route;
+- obvious indication Webify could not safely deliver the likely work.
+
+Stage A should produce a clear human-reviewable reason, not just a number. The shortlist should explain why the business is commercially plausible for Webify and why it is or is not worth sending to Veridra.
+
 ## Phase 1: SMB shortlist
 
-Goal: produce a real, human-reviewable SMB shortlist.
+Goal: produce a real, human-reviewable SMB shortlist of businesses likely to buy and benefit from the EUR 299 Webify Website Fix.
 
 LEADS must show:
 
@@ -36,6 +81,9 @@ LEADS must show:
 - sector/category;
 - territory/location;
 - current commercial state;
+- Stage A qualification score;
+- Stage A decision: send to Veridra, hold / secondary, or reject;
+- automatic rejection reason, when applicable;
 - why this business may be worth Webify investigation;
 - basic evidence summary.
 
@@ -52,7 +100,10 @@ Minimum handoff fields:
 - sector/category;
 - territory/location;
 - discovery status;
+- Stage A qualification score;
+- Stage A decision;
 - qualification reason;
+- automatic rejection reason, when applicable;
 - evidence summary;
 - timestamp.
 
@@ -124,7 +175,7 @@ Track conversion through:
 
 - discovered;
 - website found;
-- qualified;
+- Stage A qualified;
 - shortlisted;
 - sent to Veridra;
 - approved after human review;
@@ -141,4 +192,4 @@ The output should guide the next sector, territory and search query.
 
 Issue #98 is the commercial milestone. Phase issues #99 through #105 split that milestone into executable slices.
 
-The first buildable slice is #99 + #100: shortlist plus Veridra handoff export.
+The first implemented slice was #99 + #100: shortlist plus Veridra handoff export. The next LEADS slice should add Stage A qualification fields and decisions before sending prospects to Veridra.
