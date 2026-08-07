@@ -1,0 +1,62 @@
+name: Temporary Final PR106 Fixes
+
+on:
+  push:
+    branches:
+      - feature/webify-commercial-shortlist
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-final-pr106-fixes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/webify-commercial-shortlist
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Patch final test contracts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          workspace = Path('frontend/src/BusinessWorkspaceLegacy.tsx')
+          text = workspace.read_text(encoding='utf-8')
+          text = text.replace('Business notes could not be saved.', 'Note could not be added. Your text is retained.')
+          workspace.write_text(text, encoding='utf-8')
+
+          test = Path('frontend/src/WebifyShortlistWorkspace.test.tsx')
+          text = test.read_text(encoding='utf-8')
+          old = '''    const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:handoff");
+    const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+'''
+          new = '''    const createObjectURL = vi.fn(() => "blob:handoff");
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: createObjectURL });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: revokeObjectURL });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+'''
+          if old not in text:
+              raise SystemExit('Expected URL spy block not found')
+          text = text.replace(old, new, 1)
+          text = text.replace('    createObjectURL.mockRestore();\n    revokeObjectURL.mockRestore();\n    click.mockRestore();\n', '    click.mockRestore();\n')
+          test.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit final fixes
+        run: |
+          if git diff --quiet; then
+            echo 'No changes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/src/BusinessWorkspaceLegacy.tsx frontend/src/WebifyShortlistWorkspace.test.tsx
+          git commit -m 'Fix final shortlist test contracts'
+          git push origin HEAD:feature/webify-commercial-shortlist
