@@ -187,6 +187,23 @@ def test_business_qualification_update_preserves_observations(
     assert observation_evidence(after_observations) == before_payloads
 
 
+def test_business_qualification_accepts_commercial_status(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    business = seed_business_detail(db_session)
+
+    response = client.patch(
+        f"/api/v1/businesses/{business.id}/qualification",
+        json={"qualification_status": "sent_to_veridra"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["qualification_status"] == "sent_to_veridra"
+    db_session.refresh(business)
+    assert business.qualification_status == "sent_to_veridra"
+
+
 def test_business_qualification_rejects_unknown_status(
     client: TestClient,
     db_session: Session,
@@ -195,7 +212,7 @@ def test_business_qualification_rejects_unknown_status(
 
     response = client.patch(
         f"/api/v1/businesses/{business.id}/qualification",
-        json={"qualification_status": "contacted"},
+        json={"qualification_status": "not_a_real_status"},
     )
 
     assert response.status_code == 422

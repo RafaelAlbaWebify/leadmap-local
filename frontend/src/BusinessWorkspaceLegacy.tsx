@@ -10,16 +10,8 @@ import {
 import { BusinessDealCreate } from "./DealsWorkspace";
 import { TaskCreate } from "./TasksWorkspace";
 import type { BusinessDetail, BusinessNote, Lead, QualificationStatus } from "./types";
+import { qualificationOptions } from "./qualificationOptions";
 import "./businessWorkspace.css";
-
-const qualificationOptions: Array<{ value: QualificationStatus; label: string }> = [
-  { value: "new", label: "New" },
-  { value: "needs_review", label: "Needs review" },
-  { value: "qualified", label: "Qualified" },
-  { value: "unsuitable", label: "Unsuitable" },
-  { value: "duplicate", label: "Duplicate" },
-  { value: "archived", label: "Archived" }
-];
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString();
@@ -76,9 +68,6 @@ function BusinessNotes({ businessId }: { businessId: string }) {
       {createNote.isError && (
         <div className="notice error" role="alert">Note could not be added. Your text is retained.</div>
       )}
-      {notes.isPending && <div className="notice">Loading notes…</div>}
-      {notes.isError && <div className="notice error">Business notes could not be loaded.</div>}
-      {notes.data?.length === 0 && <div className="empty-state">No notes have been added yet.</div>}
       <div className="business-note-list">
         {notes.data?.map((note) => (
           <article className="business-note" key={note.id}>
@@ -86,6 +75,7 @@ function BusinessNotes({ businessId }: { businessId: string }) {
             <small>{formatDate(note.created_at)}</small>
           </article>
         ))}
+        {notes.data?.length === 0 && <div className="empty-state">No notes yet.</div>}
       </div>
     </section>
   );

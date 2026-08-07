@@ -12,6 +12,7 @@ import {
   type SavedBusinessView
 } from "./businessViewsModel";
 import type { Lead } from "./types";
+import { qualificationOptions } from "./qualificationOptions";
 import "./businessViewsWorkspace.css";
 
 function loadViews(): SavedBusinessView[] {
@@ -92,19 +93,14 @@ export function BusinessViewsWorkspace({ leads }: { leads: Lead[] }) {
             />
           </label>
           <label>
-            Qualification
+            Status
             <select
               aria-label="Qualification filter"
               value={criteria.qualification}
               onChange={(event) => updateCriteria({ qualification: event.target.value as BusinessViewCriteria["qualification"] })}
             >
               <option value="all">All</option>
-              <option value="new">New</option>
-              <option value="needs_review">Needs review</option>
-              <option value="qualified">Qualified</option>
-              <option value="unsuitable">Unsuitable</option>
-              <option value="duplicate">Duplicate</option>
-              <option value="archived">Archived</option>
+              {qualificationOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </label>
           <label>
@@ -138,7 +134,7 @@ export function BusinessViewsWorkspace({ leads }: { leads: Lead[] }) {
               <option value="observed_desc">Recently observed</option>
               <option value="name_asc">Business name</option>
               <option value="category_asc">Category</option>
-              <option value="qualification_asc">Qualification</option>
+              <option value="qualification_asc">Status</option>
             </select>
           </label>
         </div>
