@@ -57,8 +57,10 @@ describe("WebifyShortlistWorkspace", () => {
   });
 
   it("enables handoff export after selecting an eligible prospect", () => {
-    const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:handoff");
-    const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const createObjectURL = vi.fn(() => "blob:handoff");
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: createObjectURL });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: revokeObjectURL });
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     render(<WebifyShortlistWorkspace leads={leads} />);
 
@@ -68,8 +70,6 @@ describe("WebifyShortlistWorkspace", () => {
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:handoff");
-    createObjectURL.mockRestore();
-    revokeObjectURL.mockRestore();
     click.mockRestore();
   });
 });
