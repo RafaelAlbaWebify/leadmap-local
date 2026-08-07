@@ -12,10 +12,19 @@ import { TaskCreate } from "./TasksWorkspace";
 import type { BusinessDetail, BusinessNote, Lead, QualificationStatus } from "./types";
 import "./businessWorkspace.css";
 
-const qualificationOptions: Array<{ value: QualificationStatus; label: string }> = [
+export const qualificationOptions: Array<{ value: QualificationStatus; label: string }> = [
   { value: "new", label: "New" },
   { value: "needs_review", label: "Needs review" },
   { value: "qualified", label: "Qualified" },
+  { value: "shortlisted", label: "Shortlisted for Webify" },
+  { value: "sent_to_veridra", label: "Sent to Veridra" },
+  { value: "veridra_reviewed", label: "Veridra reviewed" },
+  { value: "approved_for_outreach", label: "Approved for outreach" },
+  { value: "contacted", label: "Contacted" },
+  { value: "responded", label: "Responded" },
+  { value: "conversation", label: "Conversation" },
+  { value: "proposal", label: "Proposal" },
+  { value: "customer", label: "Customer" },
   { value: "unsuitable", label: "Unsuitable" },
   { value: "duplicate", label: "Duplicate" },
   { value: "archived", label: "Archived" }
@@ -60,7 +69,7 @@ function BusinessNotes({ businessId }: { businessId: string }) {
           value={content}
           maxLength={4000}
           disabled={createNote.isPending}
-          placeholder="Record why this business was qualified, deferred, rejected or archived."
+          placeholder="Record why this business was qualified, shortlisted, sent to Veridra, deferred, rejected or contacted."
           onChange={(event) => setContent(event.target.value)}
         />
         <span>{content.length} / 4000 characters</span>
@@ -126,14 +135,14 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
         </div>
         <div className="business-detail-badges">
           <span className={`badge ${detail.freshness}`}>{detail.freshness.replace("_", " ")}</span>
-          <span className="badge neutral">{detail.qualification_status.replace("_", " ")}</span>
+          <span className="badge neutral">{detail.qualification_status.replaceAll("_", " ")}</span>
         </div>
       </div>
 
       <div className="business-qualification" aria-label="Business qualification">
         <div>
-          <h4>Qualification</h4>
-          <p>Change this only after reviewing the persisted evidence below.</p>
+          <h4>Commercial status</h4>
+          <p>Change this only after reviewing discovery evidence and Webify/Veridra suitability.</p>
         </div>
         <label>
           Status
@@ -152,13 +161,13 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
           disabled={qualification.isPending || selectedStatus === detail.qualification_status}
           onClick={() => qualification.mutate()}
         >
-          {qualification.isPending ? "Saving…" : "Save qualification"}
+          {qualification.isPending ? "Saving…" : "Save status"}
         </button>
         {qualification.isSuccess && (
-          <div className="notice success" role="status">Qualification saved as {selectedStatus.replace("_", " ")}.</div>
+          <div className="notice success" role="status">Status saved as {selectedStatus.replaceAll("_", " ")}.</div>
         )}
         {qualification.isError && (
-          <div className="notice error" role="alert">Qualification could not be saved. Your selection is retained.</div>
+          <div className="notice error" role="alert">Status could not be saved. Your selection is retained.</div>
         )}
       </div>
 
@@ -259,7 +268,7 @@ export function BusinessWorkspace({ leads }: { leads: Lead[] }) {
                 <td>{lead.locality}{lead.postal_area ? ` · ${lead.postal_area}` : ""}</td>
                 <td>{new Date(lead.last_observed_at).toLocaleDateString()}</td>
                 <td><span className={`badge ${lead.freshness}`}>{lead.freshness.replace("_", " ")}</span></td>
-                <td><span className="badge neutral">{lead.qualification_status.replace("_", " ")}</span></td>
+                <td><span className="badge neutral">{lead.qualification_status.replaceAll("_", " ")}</span></td>
                 <td>
                   <button className="secondary-action compact" onClick={() => setSelectedBusinessId(lead.id)}>
                     Open
