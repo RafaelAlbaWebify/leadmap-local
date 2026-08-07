@@ -12,7 +12,7 @@ import { TaskCreate } from "./TasksWorkspace";
 import type { BusinessDetail, BusinessNote, Lead, QualificationStatus } from "./types";
 import "./businessWorkspace.css";
 
-export const qualificationOptions: Array<{ value: QualificationStatus; label: string }> = [
+const qualificationOptions: Array<{ value: QualificationStatus; label: string }> = [
   { value: "new", label: "New" },
   { value: "needs_review", label: "Needs review" },
   { value: "qualified", label: "Qualified" },
@@ -69,7 +69,7 @@ function BusinessNotes({ businessId }: { businessId: string }) {
           value={content}
           maxLength={4000}
           disabled={createNote.isPending}
-          placeholder="Record why this business was qualified, shortlisted, sent to Veridra, deferred, rejected or contacted."
+          placeholder="Record why this business was qualified, deferred, rejected or archived."
           onChange={(event) => setContent(event.target.value)}
         />
         <span>{content.length} / 4000 characters</span>
@@ -83,11 +83,8 @@ function BusinessNotes({ businessId }: { businessId: string }) {
       </button>
       {createNote.isSuccess && <div className="notice success" role="status">Note added.</div>}
       {createNote.isError && (
-        <div className="notice error" role="alert">Note could not be added. Your text is retained.</div>
+        <div className="notice error" role="alert">Business notes could not be saved.</div>
       )}
-      {notes.isPending && <div className="notice">Loading notes…</div>}
-      {notes.isError && <div className="notice error">Business notes could not be loaded.</div>}
-      {notes.data?.length === 0 && <div className="empty-state">No notes have been added yet.</div>}
       <div className="business-note-list">
         {notes.data?.map((note) => (
           <article className="business-note" key={note.id}>
@@ -95,6 +92,7 @@ function BusinessNotes({ businessId }: { businessId: string }) {
             <small>{formatDate(note.created_at)}</small>
           </article>
         ))}
+        {notes.data?.length === 0 && <div className="empty-state">No notes yet.</div>}
       </div>
     </section>
   );
@@ -135,14 +133,14 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
         </div>
         <div className="business-detail-badges">
           <span className={`badge ${detail.freshness}`}>{detail.freshness.replace("_", " ")}</span>
-          <span className="badge neutral">{detail.qualification_status.replaceAll("_", " ")}</span>
+          <span className="badge neutral">{detail.qualification_status.replace("_", " ")}</span>
         </div>
       </div>
 
       <div className="business-qualification" aria-label="Business qualification">
         <div>
-          <h4>Commercial status</h4>
-          <p>Change this only after reviewing discovery evidence and Webify/Veridra suitability.</p>
+          <h4>Qualification</h4>
+          <p>Change this only after reviewing the persisted evidence below.</p>
         </div>
         <label>
           Status
@@ -161,13 +159,13 @@ function BusinessDetailPanel({ detail }: { detail: BusinessDetail }) {
           disabled={qualification.isPending || selectedStatus === detail.qualification_status}
           onClick={() => qualification.mutate()}
         >
-          {qualification.isPending ? "Saving…" : "Save status"}
+          {qualification.isPending ? "Saving…" : "Save qualification"}
         </button>
         {qualification.isSuccess && (
-          <div className="notice success" role="status">Status saved as {selectedStatus.replaceAll("_", " ")}.</div>
+          <div className="notice success" role="status">Qualification saved as {selectedStatus.replace("_", " ")}.</div>
         )}
         {qualification.isError && (
-          <div className="notice error" role="alert">Status could not be saved. Your selection is retained.</div>
+          <div className="notice error" role="alert">Qualification could not be saved. Your selection is retained.</div>
         )}
       </div>
 
@@ -268,7 +266,7 @@ export function BusinessWorkspace({ leads }: { leads: Lead[] }) {
                 <td>{lead.locality}{lead.postal_area ? ` · ${lead.postal_area}` : ""}</td>
                 <td>{new Date(lead.last_observed_at).toLocaleDateString()}</td>
                 <td><span className={`badge ${lead.freshness}`}>{lead.freshness.replace("_", " ")}</span></td>
-                <td><span className="badge neutral">{lead.qualification_status.replaceAll("_", " ")}</span></td>
+                <td><span className="badge neutral">{lead.qualification_status.replace("_", " ")}</span></td>
                 <td>
                   <button className="secondary-action compact" onClick={() => setSelectedBusinessId(lead.id)}>
                     Open
