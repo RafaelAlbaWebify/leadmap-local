@@ -3,6 +3,15 @@ export type QualificationStatus =
   | "new"
   | "needs_review"
   | "qualified"
+  | "shortlisted"
+  | "sent_to_veridra"
+  | "veridra_reviewed"
+  | "approved_for_outreach"
+  | "contacted"
+  | "responded"
+  | "conversation"
+  | "proposal"
+  | "customer"
   | "unsuitable"
   | "duplicate"
   | "archived";
@@ -263,32 +272,33 @@ export interface GeographyBoundingBox {
   north: number;
 }
 
-export interface GeographyBoundary {
+export interface GeographyArtifactFeature {
   external_id: string;
   name: string;
-  geometry_type: "Polygon" | "MultiPolygon";
-  coordinates: unknown;
+  geometry: unknown;
   bounding_box: GeographyBoundingBox;
 }
 
-export interface GeographyArtifact extends GeographyArtifactSummary {
-  boundaries: GeographyBoundary[];
+export interface GeographyArtifact {
+  summary: GeographyArtifactSummary;
+  features: GeographyArtifactFeature[];
 }
 
 export interface TerritoryBoundaryLink {
   territory_id: string;
   checksum_sha256: string;
   boundary_external_id: string;
-  boundary_name: string;
+  linked_at: string;
 }
 
 export interface TerritoryCoverage {
   territory_id: string;
   territory_name: string;
-  checksum_sha256: string;
-  boundary_external_id: string;
-  boundary_name: string;
-  lead_count: number;
+  business_count: number;
+  fresh_count: number;
+  ageing_count: number;
+  stale_count: number;
+  never_verified_count: number;
   latest_observed_at: string | null;
-  freshness: FreshnessStatus;
+  coverage_status: "empty" | "fresh" | "ageing" | "stale";
 }
