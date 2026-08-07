@@ -65,7 +65,7 @@ describe("WebifyShortlistWorkspace", () => {
     render(<WebifyShortlistWorkspace leads={leads} />);
 
     fireEvent.click(screen.getAllByLabelText("Select Alpha Dental")[0]);
-    fireEvent.click(screen.getByRole("button", { name: "Export JSON for Veridra" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Export JSON for Veridra" })[0]);
 
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();
