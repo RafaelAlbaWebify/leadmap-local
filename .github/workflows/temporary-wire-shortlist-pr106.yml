@@ -1,0 +1,130 @@
+name: Temporary Wire Shortlist PR106
+
+on:
+  push:
+    branches:
+      - feature/webify-commercial-shortlist
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-wire-shortlist-pr106-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/webify-commercial-shortlist
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Wire shortlist workspace
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('frontend/src/App.tsx')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('  Database,\n  Globe2,', '  ClipboardCheck,\n  Database,\n  Globe2,')
+          text = text.replace('import { TasksWorkspace } from "./TasksWorkspace";\n', 'import { TasksWorkspace } from "./TasksWorkspace";\nimport { WebifyShortlistWorkspace } from "./WebifyShortlistWorkspace";\n')
+          text = text.replace('type View = "Markets" | "Discover" | "Businesses" | "Deals" | "Tasks" | "Insights" | "Territories";', 'type View = "Markets" | "Discover" | "Shortlist" | "Businesses" | "Deals" | "Tasks" | "Insights" | "Territories";')
+          text = text.replace('  ["Discover", Search],\n  ["Businesses", Target],', '  ["Discover", Search],\n  ["Shortlist", ClipboardCheck],\n  ["Businesses", Target],')
+          text = text.replace('  Discover: "Run a bounded, user-approved business discovery session.",\n  Businesses: "Review persisted business observations and qualification evidence.",', '  Discover: "Run a bounded, user-approved business discovery session.",\n  Shortlist: "Select qualified SMBs with websites and export them for Veridra assessment.",\n  Businesses: "Review persisted business observations and qualification evidence.",')
+          text = text.replace('        {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted businesses</p></div></div><LeadTable leads={leads.data ?? []} /></section>}\n        {view === "Deals" &&', '        {view === "Shortlist" && <WebifyShortlistWorkspace leads={leads.data ?? []} />}\n        {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted businesses</p></div></div><LeadTable leads={leads.data ?? []} /></section>}\n        {view === "Deals" &&')
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Add shortlist unit tests
+        run: |
+          cat > frontend/src/WebifyShortlistWorkspace.test.tsx <<'EOF'
+          import { render, screen } from "@testing-library/react";
+          import userEvent from "@testing-library/user-event";
+          import { describe, expect, it, vi } from "vitest";
+
+          import { WebifyShortlistWorkspace } from "./WebifyShortlistWorkspace";
+          import type { Lead } from "./types";
+
+          const leads: Lead[] = [
+            {
+              id: "one",
+              name: "Alpha Dental",
+              category: "Dentist",
+              locality: "Galway",
+              postal_area: "H91",
+              website: "https://alpha.example",
+              phone: null,
+              first_observed_at: "2026-08-07T09:00:00Z",
+              last_observed_at: "2026-08-07T09:30:00Z",
+              freshness: "fresh",
+              qualification_status: "shortlisted"
+            },
+            {
+              id: "two",
+              name: "Beta Cafe",
+              category: "Cafe",
+              locality: "Galway",
+              postal_area: null,
+              website: null,
+              phone: null,
+              first_observed_at: "2026-08-07T09:00:00Z",
+              last_observed_at: "2026-08-07T09:30:00Z",
+              freshness: "fresh",
+              qualification_status: "qualified"
+            },
+            {
+              id: "three",
+              name: "Gamma Shop",
+              category: "Retail",
+              locality: "Galway",
+              postal_area: null,
+              website: "https://gamma.example",
+              phone: null,
+              first_observed_at: "2026-08-07T09:00:00Z",
+              last_observed_at: "2026-08-07T09:30:00Z",
+              freshness: "fresh",
+              qualification_status: "needs_review"
+            }
+          ];
+
+          describe("WebifyShortlistWorkspace", () => {
+            it("shows only commercial-status businesses with websites as eligible", () => {
+              render(<WebifyShortlistWorkspace leads={leads} />);
+
+              expect(screen.getByText("Alpha Dental")).toBeInTheDocument();
+              expect(screen.queryByText("Gamma Shop")).not.toBeInTheDocument();
+              expect(screen.getByText(/1 commercial-status businesses are blocked/i)).toBeInTheDocument();
+              expect(screen.getByRole("button", { name: "Export JSON for Veridra" })).toBeDisabled();
+            });
+
+            it("enables handoff export after selecting an eligible prospect", async () => {
+              const user = userEvent.setup();
+              const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:handoff");
+              const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+              const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+              render(<WebifyShortlistWorkspace leads={leads} />);
+
+              await user.click(screen.getByLabelText("Select Alpha Dental"));
+              await user.click(screen.getByRole("button", { name: "Export JSON for Veridra" }));
+
+              expect(createObjectURL).toHaveBeenCalledOnce();
+              expect(click).toHaveBeenCalledOnce();
+              expect(revokeObjectURL).toHaveBeenCalledWith("blob:handoff");
+              createObjectURL.mockRestore();
+              revokeObjectURL.mockRestore();
+              click.mockRestore();
+            });
+          });
+          EOF
+      - name: Commit shortlist wiring
+        run: |
+          if git diff --quiet; then
+            echo 'No changes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/src/App.tsx frontend/src/WebifyShortlistWorkspace.test.tsx
+          git commit -m 'Wire Webify shortlist workspace'
+          git push origin HEAD:feature/webify-commercial-shortlist
