@@ -66,7 +66,7 @@ function BusinessNotes({ businessId }: { businessId: string }) {
       </button>
       {createNote.isSuccess && <div className="notice success" role="status">Note added.</div>}
       {createNote.isError && (
-        <div className="notice error" role="alert">Business notes could not be saved.</div>
+        <div className="notice error" role="alert">Note could not be added. Your text is retained.</div>
       )}
       <div className="business-note-list">
         {notes.data?.map((note) => (
