@@ -272,33 +272,32 @@ export interface GeographyBoundingBox {
   north: number;
 }
 
-export interface GeographyArtifactFeature {
+export interface GeographyBoundary {
   external_id: string;
   name: string;
-  geometry: unknown;
+  geometry_type: "Polygon" | "MultiPolygon";
+  coordinates: unknown;
   bounding_box: GeographyBoundingBox;
 }
 
-export interface GeographyArtifact {
-  summary: GeographyArtifactSummary;
-  features: GeographyArtifactFeature[];
+export interface GeographyArtifact extends GeographyArtifactSummary {
+  boundaries: GeographyBoundary[];
 }
 
 export interface TerritoryBoundaryLink {
   territory_id: string;
   checksum_sha256: string;
   boundary_external_id: string;
-  linked_at: string;
+  boundary_name: string;
 }
 
 export interface TerritoryCoverage {
   territory_id: string;
   territory_name: string;
-  business_count: number;
-  fresh_count: number;
-  ageing_count: number;
-  stale_count: number;
-  never_verified_count: number;
+  checksum_sha256: string;
+  boundary_external_id: string;
+  boundary_name: string;
+  lead_count: number;
   latest_observed_at: string | null;
-  coverage_status: "empty" | "fresh" | "ageing" | "stale";
+  freshness: FreshnessStatus;
 }
