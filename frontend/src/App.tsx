@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Activity,
+  ClipboardCheck,
   Database,
   Globe2,
   LayoutDashboard,
@@ -31,9 +32,10 @@ import { GeographyWorkspace } from "./GeographyWorkspace";
 import { InsightsWorkspace } from "./InsightsWorkspace";
 import { QueryGroupReview } from "./QueryGroupReview";
 import { TasksWorkspace } from "./TasksWorkspace";
+import { WebifyShortlistWorkspace } from "./WebifyShortlistWorkspace";
 import type { AssistedSession, AssistedSessionReview, Lead } from "./types";
 
-type View = "Markets" | "Discover" | "Businesses" | "Deals" | "Tasks" | "Insights" | "Territories";
+type View = "Markets" | "Discover" | "Shortlist" | "Businesses" | "Deals" | "Tasks" | "Insights" | "Territories";
 
 type Recommendation = {
   territoryId: string;
@@ -45,6 +47,7 @@ type Recommendation = {
 const navigation: Array<[View, typeof MapIcon]> = [
   ["Markets", Globe2],
   ["Discover", Search],
+  ["Shortlist", ClipboardCheck],
   ["Businesses", Target],
   ["Deals", LayoutDashboard],
   ["Tasks", Activity],
@@ -55,6 +58,7 @@ const navigation: Array<[View, typeof MapIcon]> = [
 const pageDescription: Record<View, string> = {
   Markets: "Choose where to prospect before spending time collecting businesses.",
   Discover: "Run a bounded, user-approved business discovery session.",
+  Shortlist: "Select qualified SMBs with websites and export them for Veridra assessment.",
   Businesses: "Review persisted business observations and qualification evidence.",
   Deals: "Track commercial opportunities created from qualified businesses.",
   Tasks: "Keep research, outreach and follow-up work visible.",
@@ -368,6 +372,7 @@ export function App() {
           </>
         )}
 
+        {view === "Shortlist" && <WebifyShortlistWorkspace leads={leads.data ?? []} />}
         {view === "Businesses" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Business database</h2><p>{leads.data?.length ?? 0} persisted businesses</p></div></div><LeadTable leads={leads.data ?? []} /></section>}
         {view === "Deals" && <section className="panel page-panel"><div className="panel-heading"><div><h2>Deals pipeline</h2><p>Explicit commercial opportunities created from qualified businesses.</p></div></div><DealsWorkspace /></section>}
         {view === "Tasks" && <section className="panel page-panel"><TasksWorkspace /></section>}
