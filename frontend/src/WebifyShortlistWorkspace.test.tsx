@@ -64,7 +64,7 @@ describe("WebifyShortlistWorkspace", () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     render(<WebifyShortlistWorkspace leads={leads} />);
 
-    fireEvent.click(screen.getByLabelText("Select Alpha Dental"));
+    fireEvent.click(screen.getAllByLabelText("Select Alpha Dental")[0]);
     fireEvent.click(screen.getByRole("button", { name: "Export JSON for Veridra" }));
 
     expect(createObjectURL).toHaveBeenCalledOnce();
